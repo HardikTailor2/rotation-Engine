@@ -221,8 +221,9 @@ tr.click:hover td{background:var(--soft)}
         </div>
         <div class="notif-tools">
           <input type="text" id="top-search" placeholder="🔍 Search item code or name…" style="flex:1;min-width:180px">
-          <div class="fld"><select id="top-div"></select></div>
-          <div class="fld"><select id="top-cat"></select></div>
+          <div class="ms" id="ms-tdiv"><button type="button" class="ms-btn">Division</button><div class="ms-pop hide"></div></div>
+          <div class="ms" id="ms-tdep"><button type="button" class="ms-btn">Department</button><div class="ms-pop hide"></div></div>
+          <div class="ms" id="ms-tcat"><button type="button" class="ms-btn">Category</button><div class="ms-pop hide"></div></div>
           <button class="btn sm" id="top-export">Export</button>
         </div>
         <div class="notif-body" id="top-body"></div>
@@ -240,7 +241,7 @@ tr.click:hover td{background:var(--soft)}
         <div class="fld"><label>Sub Category</label><div class="ms" id="ms-sub"><button type="button" class="ms-btn">Sub Category</button><div class="ms-pop hide"></div></div></div>
         <div class="fld"><label>Priority</label><select id="fl-pri"><option value="">All</option><option>High</option><option>Medium</option></select></div>
         <div class="fld"><label>Donor</label><select id="fl-don"><option value="">All</option><option>Dead</option><option>Overstock</option></select></div>
-        <div class="fld"><label>Min move qty</label><input type="number" id="fl-min" value="1" min="1" style="width:90px"></div>
+        <div class="fld"><label>Move qty</label><div class="ms" id="ms-qty"><button type="button" class="ms-btn">Move qty</button><div class="ms-pop hide"></div></div></div>
         <button class="btn ghost" id="fl-reset">Reset</button>
         <button class="btn" id="plan-export">Export CSV</button>
       </div>
@@ -493,10 +494,9 @@ function renderAll(){
   $('kpis').innerHTML=cards.map(function(a){return '<div class="kpi '+(a[0]==='alt'?'alt':'')+'"><div class="v">'+fmt(a[1])+'</div><div class="l">'+a[2]+'</div></div>';}).join('');
   $('ct-plan').textContent=fmt(kpi.lines);$('ct-unres').textContent=fmt(kpi.unres);
   $('top-badge').textContent=RESULT.topItems.length;
-  fillSel($('top-div'),'All divisions',uniqSorted(RESULT.topItems.map(function(t){return t.div;})));
-  fillSel($('top-cat'),'All categories',uniqSorted(RESULT.topItems.map(function(t){return t.cat;})));
+  buildMS('tdiv','ms-tdiv',RESULT.topItems,'div',renderTop);buildMS('tdep','ms-tdep',RESULT.topItems,'dep',renderTop);buildMS('tcat','ms-tcat',RESULT.topItems,'cat',renderTop);
   renderTop();
-  buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);
+  buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);buildMS('qty','ms-qty',RESULT.plan,'qty',renderPlan,true);
   buildMS('udiv','ms-udiv',RESULT.unres,'div',renderUnres);buildMS('ucat','ms-ucat',RESULT.unres,'cat',renderUnres);
   renderPlan();renderUnres();
 }
@@ -505,15 +505,15 @@ function uniqSorted(arr){return Array.from(new Set(arr)).filter(function(x){retu
 
 /* ---------- Top 100 ---------- */
 function renderTop(){
-  var q=($('top-search').value||'').toLowerCase(),dv=$('top-div').value,ct=$('top-cat').value;
+  var q=($('top-search').value||'').toLowerCase();
   var rows=RESULT.topItems.filter(function(t){
-    if(dv&&t.div!==dv)return false;if(ct&&t.cat!==ct)return false;
+    if(!inSet('tdiv',t.div))return false;if(!inSet('tdep',t.dep))return false;if(!inSet('tcat',t.cat))return false;
     if(q&&!(String(t.item).toLowerCase().indexOf(q)>=0||String(t.name).toLowerCase().indexOf(q)>=0))return false;return true;});
   $('top-body').innerHTML='<table><thead><tr><th>#</th><th>Item</th><th>Name</th><th>Division</th><th>Category</th><th>Move qty</th><th>Routes</th><th>OOS fixes</th><th>Score</th></tr></thead><tbody>'+
     (rows.map(function(t){return '<tr class="click" data-item="'+t.item+'"><td>'+t.rank+'</td><td>'+t.item+'</td><td>'+esc(t.name)+'</td><td>'+esc(t.div)+'</td><td>'+esc(t.cat)+'</td><td><b>'+t.qty+'</b></td><td>'+t.lines+'</td><td>'+t.high+'</td><td>'+t.score+'</td></tr>';}).join('')||'<tr><td colspan="9" class="empty">No items match.</td></tr>')+'</tbody>';
   [].forEach.call($('top-body').querySelectorAll('tr.click'),function(tr){tr.addEventListener('click',function(){openItem(tr.dataset.item);});});
 }
-['top-search','top-div','top-cat'].forEach(function(id){$(id).addEventListener('input',renderTop);});
+$('top-search').addEventListener('input',renderTop);
 $('top-export').addEventListener('click',function(){var data=RESULT.topItems.map(function(t){return {Rank:t.rank,Item:t.item,Name:t.name,Division:t.div,Department:t.dep,Category:t.cat,Move_Qty:t.qty,Routes:t.lines,OOS_Fixes:t.high,Score:t.score};});exportCsv(data,'Top100_Priority');});
 
 /* ---------- item drill-down modal ---------- */
@@ -536,11 +536,13 @@ $('modal').addEventListener('click',function(e){if(e.target===$('modal'))$('moda
 
 /* ---------- multi-select ---------- */
 var MSEL={}; // key -> Set
-function buildMS(key,elId,data,field,onChange){
+var MSNAME={div:'Division',dep:'Department',cat:'Category',sub:'Sub Category',qty:'Move qty',tdiv:'Division',tdep:'Department',tcat:'Category',udiv:'Division',ucat:'Category'};
+function buildMS(key,elId,data,field,onChange,numeric){
   MSEL[key]=MSEL[key]||new Set();
-  var values=uniqSorted(data.map(function(x){return x[field];}));
+  var raw=Array.from(new Set(data.map(function(x){return x[field];}))).filter(function(x){return x!==''&&x!=null&&x!=='—';});
+  var values=numeric?raw.map(Number).sort(function(a,b){return a-b;}).map(String):raw.map(String).sort();
   var wrap=$(elId),btn=wrap.querySelector('.ms-btn'),pop=wrap.querySelector('.ms-pop');
-  function lbl(){var n=MSEL[key].size;btn.innerHTML=(field==='div'?'Division':field==='dep'?'Department':field==='cat'?'Category':'Sub Category')+(n?' <span class="cnt">'+n+'</span>':' : All');}
+  function lbl(){var n=MSEL[key].size;btn.innerHTML=(MSNAME[key]||field)+(n?' <span class="cnt">'+n+'</span>':' : All');}
   pop.innerHTML='<input class="s" placeholder="search…"><div class="opts"></div>';
   var opts=pop.querySelector('.opts');
   function draw(filter){opts.innerHTML=values.filter(function(v){return !filter||v.toLowerCase().indexOf(filter)>=0;}).map(function(v){return '<label><input type="checkbox" value="'+esc(v)+'"'+(MSEL[key].has(v)?' checked':'')+'> '+esc(v)+'</label>';}).join('');
@@ -553,11 +555,11 @@ function buildMS(key,elId,data,field,onChange){
 document.addEventListener('click',function(){document.querySelectorAll('.ms-pop').forEach(function(p){p.classList.add('hide');});});
 
 /* ---------- plan ---------- */
-$('fl-reset').addEventListener('click',function(){['div','dep','cat','sub'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);$('fl-pri').value='';$('fl-don').value='';$('fl-min').value=1;renderPlan();});
-['fl-pri','fl-don','fl-min'].forEach(function(id){$(id).addEventListener('input',renderPlan);});
+$('fl-reset').addEventListener('click',function(){['div','dep','cat','sub','qty'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);buildMS('qty','ms-qty',RESULT.plan,'qty',renderPlan,true);$('fl-pri').value='';$('fl-don').value='';renderPlan();});
+['fl-pri','fl-don'].forEach(function(id){$(id).addEventListener('input',renderPlan);});
 function inSet(k,v){return !MSEL[k]||MSEL[k].size===0||MSEL[k].has(v);}
-function filteredPlan(){var pr=$('fl-pri').value,dn=$('fl-don').value,mn=Number($('fl-min').value)||1;
-  return RESULT.plan.filter(function(p){return inSet('div',p.div)&&inSet('dep',p.dep)&&inSet('cat',p.cat)&&inSet('sub',p.sub)&&(!pr||p.priority===pr)&&(!dn||p.donor===dn)&&(p.qty>=mn);});}
+function filteredPlan(){var pr=$('fl-pri').value,dn=$('fl-don').value;
+  return RESULT.plan.filter(function(p){return inSet('div',p.div)&&inSet('dep',p.dep)&&inSet('cat',p.cat)&&inSet('sub',p.sub)&&inSet('qty',String(p.qty))&&(!pr||p.priority===pr)&&(!dn||p.donor===dn);});}
 function renderPlan(){var rows=filteredPlan();var units=rows.reduce(function(s,r){return s+r.qty;},0);
   rows.sort(function(a,b){return a.from.localeCompare(b.from)||a.item.localeCompare(b.item)||a.to.localeCompare(b.to);});
   var note=fmt(rows.length)+' transfers · '+fmt(units)+' units'+(rows.length?' · sorted by From branch':'');
