@@ -263,6 +263,7 @@ tr.click:hover td{background:var(--soft)}
         <div class="fld"><label>Priority</label><select id="fl-pri"><option value="">All</option><option>High</option><option>Medium</option></select></div>
         <div class="fld"><label>Donor</label><select id="fl-don"><option value="">All</option><option>Dead</option><option>Overstock</option></select></div>
         <div class="fld"><label>Move qty</label><div class="ms" id="ms-qty"><button type="button" class="ms-btn">Move qty</button><div class="ms-pop hide"></div></div></div>
+        <div class="fld"><label>Search</label><input type="text" id="pl-search" placeholder="\ud83d\udd0d item / name / branch" style="min-width:170px"></div>
         <button class="btn ghost" id="fl-reset">Reset</button>
         <button class="btn" id="plan-export">Export CSV</button>
       </div>
@@ -276,6 +277,7 @@ tr.click:hover td{background:var(--soft)}
       <div class="toolbar">
         <div class="fld"><label>Division</label><div class="ms" id="ms-udiv"><button type="button" class="ms-btn">Division</button><div class="ms-pop hide"></div></div></div>
         <div class="fld"><label>Category</label><div class="ms" id="ms-ucat"><button type="button" class="ms-btn">Category</button><div class="ms-pop hide"></div></div></div>
+        <div class="fld"><label>Search</label><input type="text" id="ul-search" placeholder="\ud83d\udd0d item / name / branch" style="min-width:170px"></div>
         <button class="btn ghost" id="ul-reset">Reset</button>
         <button class="btn" id="unres-export">Export CSV</button>
       </div>
@@ -600,11 +602,11 @@ function buildMS(key,elId,data,field,onChange,numeric){
 document.addEventListener('click',function(){document.querySelectorAll('.ms-pop').forEach(function(p){p.classList.add('hide');});});
 
 /* ---------- plan ---------- */
-$('fl-reset').addEventListener('click',function(){['div','dep','cat','sub','qty'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);buildMS('qty','ms-qty',RESULT.plan,'qty',renderPlan,true);$('fl-pri').value='';$('fl-don').value='';renderPlan();});
-['fl-pri','fl-don'].forEach(function(id){$(id).addEventListener('input',renderPlan);});
+$('fl-reset').addEventListener('click',function(){['div','dep','cat','sub','qty'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);buildMS('qty','ms-qty',RESULT.plan,'qty',renderPlan,true);$('fl-pri').value='';$('fl-don').value='';$('pl-search').value='';renderPlan();});
+['fl-pri','fl-don','pl-search'].forEach(function(id){$(id).addEventListener('input',renderPlan);});
 function inSet(k,v){return !MSEL[k]||MSEL[k].size===0||MSEL[k].has(v);}
-function filteredPlan(){var pr=$('fl-pri').value,dn=$('fl-don').value;
-  return RESULT.plan.filter(function(p){return inSet('div',p.div)&&inSet('dep',p.dep)&&inSet('cat',p.cat)&&inSet('sub',p.sub)&&inSet('qty',String(p.qty))&&(!pr||p.priority===pr)&&(!dn||p.donor===dn);});}
+function filteredPlan(){var pr=$('fl-pri').value,dn=$('fl-don').value,q=($('pl-search').value||'').toLowerCase();
+  return RESULT.plan.filter(function(p){return inSet('div',p.div)&&inSet('dep',p.dep)&&inSet('cat',p.cat)&&inSet('sub',p.sub)&&inSet('qty',String(p.qty))&&(!pr||p.priority===pr)&&(!dn||p.donor===dn)&&(!q||String(p.item).toLowerCase().indexOf(q)>=0||String(p.name).toLowerCase().indexOf(q)>=0||String(p.from).toLowerCase().indexOf(q)>=0||String(p.to).toLowerCase().indexOf(q)>=0);});}
 function renderPlan(){var rows=filteredPlan();var units=rows.reduce(function(s,r){return s+r.qty;},0);
   rows.sort(function(a,b){return a.from.localeCompare(b.from)||a.item.localeCompare(b.item)||a.to.localeCompare(b.to);});
   var note=fmt(rows.length)+' transfers · '+fmt(units)+' units'+(rows.length?' · sorted by From branch':'');
@@ -619,8 +621,9 @@ $('plan-export').addEventListener('click',function(){var rows=filteredPlan().sor
   if(!data.length){alert('Nothing to export with current filters.');return;}exportCsv(data,'Rotation_Plan');});
 
 /* ---------- unresolved ---------- */
-$('ul-reset').addEventListener('click',function(){['udiv','ucat'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('udiv','ms-udiv',RESULT.unres,'div',renderUnres);buildMS('ucat','ms-ucat',RESULT.unres,'cat',renderUnres);renderUnres();});
-function filteredUnres(){return RESULT.unres.filter(function(u){return inSet('udiv',u.div)&&inSet('ucat',u.cat);});}
+$('ul-reset').addEventListener('click',function(){['udiv','ucat'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('udiv','ms-udiv',RESULT.unres,'div',renderUnres);buildMS('ucat','ms-ucat',RESULT.unres,'cat',renderUnres);$('ul-search').value='';renderUnres();});
+function filteredUnres(){var q=($('ul-search').value||'').toLowerCase();return RESULT.unres.filter(function(u){return inSet('udiv',u.div)&&inSet('ucat',u.cat)&&(!q||String(u.item).toLowerCase().indexOf(q)>=0||String(u.name).toLowerCase().indexOf(q)>=0||String(u.branch).toLowerCase().indexOf(q)>=0);});}
+$('ul-search').addEventListener('input',renderUnres);
 function renderUnres(){var rows=filteredUnres().sort(function(a,b){return b.short-a.short;});
   $('unres-count').textContent=fmt(rows.length)+' lines · '+fmt(rows.reduce(function(s,r){return s+r.short;},0))+' units short';
   var view=rows.slice(0,2000);
@@ -641,8 +644,8 @@ function renderAlerts(){
   var rows=filteredAlerts();
   $('alert-count').textContent=fmt(rows.length)+' alert'+(rows.length===1?'':'s')+' for '+(RESULT.alertDate||'latest day');
   var body=rows.map(function(r){var dev=r.type==='Spike'?(r.dev+'\u00d7'+(r.record?' \u2605':'')):('\u2212'+r.dev+'%');
-    return '<tr><td><span class="pill '+(r.type==='Spike'?'spike':'drop')+'">'+r.type+'</span></td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.branch)+'</td><td>'+r.normal+'/day</td><td><b>'+r.latest+'</b></td><td>'+dev+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('');
-  $('alert-table').innerHTML='<thead><tr><th>Type</th><th>Item</th><th>Name</th><th>Branch</th><th>Normal</th><th>Latest sold</th><th>Deviation</th><th>Division</th><th>Category</th></tr></thead><tbody>'+(body||'<tr><td colspan="9" class="empty">No unusual activity \ud83c\udf89</td></tr>')+'</tbody>';
+    return '<tr><td><span class="pill '+(r.type==='Spike'?'spike':'drop')+'">'+r.type+'</span></td><td>'+(RESULT.alertDate||'')+'</td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.branch)+'</td><td>'+r.normal+'/day</td><td><b>'+r.latest+'</b></td><td>'+dev+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('');
+  $('alert-table').innerHTML='<thead><tr><th>Type</th><th>Date</th><th>Item</th><th>Name</th><th>Branch</th><th>Normal</th><th>Latest sold</th><th>Deviation</th><th>Division</th><th>Category</th></tr></thead><tbody>'+(body||'<tr><td colspan="10" class="empty">No unusual activity \ud83c\udf89</td></tr>')+'</tbody>';
 }
 $('al-type').addEventListener('input',renderAlerts);$('al-search').addEventListener('input',renderAlerts);
 $('al-reset').addEventListener('click',function(){['adiv','adep','acat'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});var AL=RESULT.alerts||[];buildMS('adiv','ms-adiv',AL,'div',renderAlerts);buildMS('adep','ms-adep',AL,'dep',renderAlerts);buildMS('acat','ms-acat',AL,'cat',renderAlerts);$('al-type').value='';$('al-search').value='';renderAlerts();});
