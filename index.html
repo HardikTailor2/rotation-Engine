@@ -169,7 +169,7 @@ tr.click:hover td{background:var(--soft)}
   <main class="main"><header class="topbar"><button class="burger" id="burger" title="Toggle sidebar"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button><div class="pt" id="pagetitle">Upload Data</div><div class="acc"><span class="gd"></span>Canteen · Warehouse &amp; Inventory</div></header><div class="wrap">
     <section id="view-upload">
       <h1>Upload daily data</h1>
-      <p class="sub">First time: upload full Sales history + SOH + Master. After that, just add each day's Sales and the latest SOH, then Run.</p>
+      <p class="sub">First time: upload full Sales history + SOH + Master. After that, each day: drop the latest Master &amp; SOH (they replace), and add the day's Sales (it sums into history), then Run.</p>
 
       <div class="saved">
         <div class="st"><span class="dot" id="dot-sales"></span><b id="sv-sales">Sales: none</b></div>
@@ -180,25 +180,26 @@ tr.click:hover td{background:var(--soft)}
         <button class="btn ghost sm" id="btn-clear">Clear saved data</button>
       </div>
       <div class="tip" id="store-tip">💾 Data is saved in this browser. For reliable saving, host this file on GitHub Pages (https) — under a double-clicked file:// page some browsers block storage.</div>
+      <div class="tip" style="background:#FBF7E8;border-color:#EBDCA8">🔁 <b>How daily data behaves:</b> Master &amp; SOH are <b>replaced</b> by each new upload (latest wins). Sales in <b>“Add a day”</b> mode is <b>added &amp; summed per item × branch</b> — your 27 Jun base keeps growing day by day. Re-uploading the same day is safe (no double-count).</div>
 
       <div class="drops">
         <div class="dwrap">
           <div class="dhead"><b>Sales (CSV)</b><span class="tmpl" data-t="sales">⬇ template</span></div>
-          <div class="seg" id="seg-sales"><button data-mode="add" class="on">Add a day</button><button data-mode="replace">Replace all</button></div>
+          <div class="seg" id="seg-sales"><button data-mode="add" class="on" title="Sum this day into the saved history (per item × branch)">Add a day</button><button data-mode="replace" title="Wipe saved sales and start fresh from this file">Replace all</button></div>
           <label class="drop" id="d-sales"><input type="file" id="f-sales" accept=".csv">
             <div class="ic"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div><div class="lbl">Drop Sales</div>
             <div class="hint">Posting Date, Product, Store, Qty</div><div class="fname" id="n-sales"></div></label>
         </div>
         <div class="dwrap">
           <div class="dhead"><b>Stock On Hand (CSV)</b><span class="tmpl" data-t="soh">⬇ template</span></div>
-          <div class="seg"><button class="on" style="cursor:default">Latest snapshot</button></div>
+          <div class="seg"><button class="on" style="cursor:default">Replaces daily</button></div>
           <label class="drop" id="d-soh"><input type="file" id="f-soh" accept=".csv">
             <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div><div class="lbl">Drop SOH</div>
             <div class="hint">Product Code, Quantity, Warehouse</div><div class="fname" id="n-soh"></div></label>
         </div>
         <div class="dwrap">
           <div class="dhead"><b>Master Data (CSV)</b><span class="tmpl" data-t="master">⬇ template</span></div>
-          <div class="seg"><button class="on" style="cursor:default">Reference</button></div>
+          <div class="seg"><button class="on" style="cursor:default">Replaces daily</button></div>
           <label class="drop" id="d-master"><input type="file" id="f-master" accept=".csv">
             <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><div class="lbl">Drop Master</div>
             <div class="hint">Product Code, Division, Department, Category</div><div class="fname" id="n-master"></div></label>
