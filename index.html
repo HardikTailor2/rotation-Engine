@@ -1077,7 +1077,7 @@ function buildMS(key,elId,data,field,onChange,numeric){
   btn.onclick=function(e){e.stopPropagation();var open=!pop.classList.contains('hide');document.querySelectorAll('.ms-pop').forEach(function(p){p.classList.add('hide');});if(!open)pop.classList.remove('hide');};
   lbl();
 }
-document.addEventListener('click',function(){document.querySelectorAll('.ms-pop').forEach(function(p){p.classList.add('hide');});});
+document.addEventListener('click',function(e){if(e.target.closest('.ms'))return;document.querySelectorAll('.ms-pop').forEach(function(p){p.classList.add('hide');});});
 
 /* ---------- plan ---------- */
 $('fl-reset').addEventListener('click',function(){['div','dep','cat','sub','qty'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);buildMS('qty','ms-qty',RESULT.plan,'qty',renderPlan,true);$('fl-pri').value='';$('fl-don').value='';$('pl-search').value='';renderPlan();});
