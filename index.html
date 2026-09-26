@@ -183,9 +183,10 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
       <button class="navbtn" data-view="dash" id="nav-dash" disabled><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Dashboard</span></button>
       <button class="navbtn" data-view="plan" id="nav-plan" disabled><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3.5V8h-4.5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 20.5V16h4.5"/></svg><span class="lbl">Rotation Plan</span><span class="ct" id="ct-plan">0</span></button>
       <button class="navbtn" data-view="unres" id="nav-unres" disabled><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg><span class="lbl">Unresolved</span><span class="ct" id="ct-unres">0</span></button>
+      <button class="navbtn" data-view="manual" id="nav-manual" disabled><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 6.5l7 4.5"/><path d="M8.5 17.5l7-4.5"/></svg><span class="lbl">Manual Rotation</span><span class="ct" id="ct-manual">0</span></button>
     </nav>
     <div class="spacer"></div>
-    <div class="ver">7-day cover · WH trigger 7d<br>Overstock donor &gt; 30d · dead-first<br>v4 · saves data daily</div>
+    <div class="ver">7-day cover · WH trigger 7d · ADS 70d<br>Overstock donor &gt; 30d · dead-first<br>v4 · saves data daily</div>
   </aside>
 
   <main class="main"><header class="topbar"><button class="burger" id="burger" title="Toggle sidebar"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button><div class="pt" id="pagetitle">Upload Data</div><div class="acc"><span class="gd"></span>Canteen · Warehouse &amp; Inventory</div></header><div class="wrap">
@@ -202,12 +203,12 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
         <button class="btn ghost sm" id="btn-clear">Clear saved data</button>
       </div>
       <div class="tip" id="store-tip">💾 Data is saved in this browser. For reliable saving, host this file on GitHub Pages (https) — under a double-clicked file:// page some browsers block storage.</div>
-      <div class="tip" style="background:#FBF7E8;border-color:#EBDCA8">🔁 <b>How daily data behaves:</b> Master &amp; SOH are <b>replaced</b> by each new upload (latest wins). Sales in <b>“Add a day”</b> mode is <b>added &amp; summed per item × branch</b> — your 27 Jun base keeps growing day by day. Re-uploading the same day is safe (no double-count).</div>
+      <div class="tip" style="background:#FBF7E8;border-color:#EBDCA8">🔁 <b>How daily data behaves:</b> Master &amp; SOH are <b>replaced</b> by each new upload (latest wins). Sales in <b>“Add a day”</b> mode: <b>new dates are added</b> to history, and a date that's <b>already saved is replaced</b> by the new file — so re-uploading a corrected day never double-counts. ADS uses the <b>last 70 days</b>.</div>
 
       <div class="drops">
         <div class="dwrap">
           <div class="dhead"><b>Sales (CSV)</b><span class="tmpl" data-t="sales">⬇ template</span></div>
-          <div class="seg" id="seg-sales"><button data-mode="add" class="on" title="Sum this day into the saved history (per item × branch)">Add a day</button><button data-mode="replace" title="Wipe saved sales and start fresh from this file">Replace all</button></div>
+          <div class="seg" id="seg-sales"><button data-mode="add" class="on" title="Add this file's day(s) to saved history. A day that is already saved gets replaced, never double-counted.">Add a day</button><button data-mode="replace" title="Wipe saved sales and start fresh from this file">Replace all</button></div>
           <label class="drop" id="d-sales"><input type="file" id="f-sales" accept=".csv">
             <div class="ic"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div><div class="lbl">Drop Sales</div>
             <div class="hint">Posting Date, Product, Store, Qty</div><div class="fname" id="n-sales"></div></label>
@@ -242,9 +243,9 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
         <div class="fld"><label>Division</label><div class="ms" id="ms-adiv"><button type="button" class="ms-btn">Division</button><div class="ms-pop hide"></div></div></div>
         <div class="fld"><label>Department</label><div class="ms" id="ms-adep"><button type="button" class="ms-btn">Department</button><div class="ms-pop hide"></div></div></div>
         <div class="fld"><label>Category</label><div class="ms" id="ms-acat"><button type="button" class="ms-btn">Category</button><div class="ms-pop hide"></div></div></div>
-        <div class="fld"><label>Search</label><input type="text" id="al-search" placeholder="\ud83d\udd0d item / branch" style="min-width:160px"></div>
+        <div class="fld"><label>Search</label><input type="text" id="al-search" placeholder="🔍 item / branch" style="min-width:160px"></div>
         <button class="btn ghost" id="al-reset">Reset</button>
-        <div class="exp" id="exp-alert"><button type="button" class="btn sm exp-btn">Export <span class="car">\u25be</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
+        <div class="exp" id="exp-alert"><button type="button" class="btn sm exp-btn">Export <span class="car">▾</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
       </div>
       <div class="count" id="alert-count"></div>
       <div class="tablewrap"><table id="alert-table"></table></div>
@@ -265,7 +266,7 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
           <div class="ms" id="ms-tdiv"><button type="button" class="ms-btn">Division</button><div class="ms-pop hide"></div></div>
           <div class="ms" id="ms-tdep"><button type="button" class="ms-btn">Department</button><div class="ms-pop hide"></div></div>
           <div class="ms" id="ms-tcat"><button type="button" class="ms-btn">Category</button><div class="ms-pop hide"></div></div>
-          <div class="exp" id="exp-top"><button type="button" class="btn sm exp-btn">Export <span class="car">\u25be</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
+          <div class="exp" id="exp-top"><button type="button" class="btn sm exp-btn">Export <span class="car">▾</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
         </div>
         <div class="notif-body" id="top-body"></div>
       </div>
@@ -283,9 +284,9 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
         <div class="fld"><label>Priority</label><select id="fl-pri"><option value="">All</option><option>High</option><option>Medium</option></select></div>
         <div class="fld"><label>Donor</label><select id="fl-don"><option value="">All</option><option>Dead</option><option>Overstock</option></select></div>
         <div class="fld"><label>Move qty</label><div class="ms" id="ms-qty"><button type="button" class="ms-btn">Move qty</button><div class="ms-pop hide"></div></div></div>
-        <div class="fld"><label>Search</label><input type="text" id="pl-search" placeholder="\ud83d\udd0d item / name / branch" style="min-width:170px"></div>
+        <div class="fld"><label>Search</label><input type="text" id="pl-search" placeholder="🔍 item / name / branch" style="min-width:170px"></div>
         <button class="btn ghost" id="fl-reset">Reset</button>
-        <div class="exp" id="exp-plan"><button type="button" class="btn sm exp-btn">Export <span class="car">\u25be</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
+        <div class="exp" id="exp-plan"><button type="button" class="btn sm exp-btn">Export <span class="car">▾</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
       </div>
       <div class="count" id="plan-count"></div>
       <div class="tablewrap"><table id="plan-table"></table></div>
@@ -297,19 +298,38 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
       <div class="toolbar">
         <div class="fld"><label>Division</label><div class="ms" id="ms-udiv"><button type="button" class="ms-btn">Division</button><div class="ms-pop hide"></div></div></div>
         <div class="fld"><label>Category</label><div class="ms" id="ms-ucat"><button type="button" class="ms-btn">Category</button><div class="ms-pop hide"></div></div></div>
-        <div class="fld"><label>Search</label><input type="text" id="ul-search" placeholder="\ud83d\udd0d item / name / branch" style="min-width:170px"></div>
+        <div class="fld"><label>Search</label><input type="text" id="ul-search" placeholder="🔍 item / name / branch" style="min-width:170px"></div>
         <button class="btn ghost" id="ul-reset">Reset</button>
-        <div class="exp" id="exp-unres"><button type="button" class="btn sm exp-btn">Export <span class="car">\u25be</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
+        <div class="exp" id="exp-unres"><button type="button" class="btn sm exp-btn">Export <span class="car">▾</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
       </div>
       <div class="count" id="unres-count"></div>
       <div class="tablewrap"><table id="unres-table"></table></div>
+    </section>
+
+    <section id="view-manual" class="hide">
+      <h1>Manual Rotation</h1>
+      <p class="sub">Tu decide kar kaunsi branches bhejengi aur kaunsi lengi. Har <b>From</b> branch apna <b>keep-days</b> ka stock rakhti hai (dead stock ho toh poora bhejti hai). Baaki extra <b>sirf selected To branches</b> mein unki sales (ADS) ke hisaab se baant diya jata hai. Warehouse rule normal plan jaisa hai: item tabhi aata hai jab WH mein 7 din se kam stock ho.</p>
+      <div class="toolbar">
+        <div class="fld"><label>From branches (send)</label><div class="ms" id="ms-mfrom"><button type="button" class="ms-btn">From</button><div class="ms-pop hide"></div></div></div>
+        <div class="fld"><label>To branches (receive)</label><div class="ms" id="ms-mto"><button type="button" class="ms-btn">To</button><div class="ms-pop hide"></div></div></div>
+        <div class="fld"><label>From keeps (days)</label><input type="number" id="mn-keep" min="0" max="90" value="7" style="width:90px"></div>
+        <div class="fld"><label>Division</label><div class="ms" id="ms-mdiv"><button type="button" class="ms-btn">Division</button><div class="ms-pop hide"></div></div></div>
+        <div class="fld"><label>Category</label><div class="ms" id="ms-mcat"><button type="button" class="ms-btn">Category</button><div class="ms-pop hide"></div></div></div>
+        <div class="fld"><label>Search</label><input type="text" id="mn-search" placeholder="🔍 item / name / branch" style="min-width:170px"></div>
+        <button class="btn ghost" id="mn-reset">Reset</button>
+        <div class="exp" id="exp-manual"><button type="button" class="btn sm exp-btn">Export <span class="car">▾</span></button><div class="exp-menu hide"><button data-fmt="csv">CSV<span class="tag">.csv</span></button><button data-fmt="xlsx">Excel<span class="tag">.xlsx</span></button><button data-fmt="pdf">PDF<span class="tag">.pdf</span></button></div></div>
+      </div>
+      <div class="tip hide" id="mn-warn" style="background:#FBEFD2;border-color:#EBDCA8">⚠️ Rehab jaisi excluded branches ka stock purani saved SOH mein nahi hai. <b>SOH file ek baar dobara upload kar</b> aur Run daba, phir Rehab ka stock bhi yahan aayega.</div>
+      <div class="kpis" id="mn-kpis"></div>
+      <div class="count" id="mn-count"></div>
+      <div class="tablewrap"><table id="mn-table"></table></div>
     </section>
   </div></main><div class="scrim" id="scrim"></div>
 </div>
 
 <div class="overlay hide" id="overlay">
   <div class="spin"></div>
-  <div id="ov-text" style="font-weight:700;color:var(--orange)">Starting…</div>
+  <div id="ov-text" style="font-weight:700;color:var(--green)">Starting…</div>
   <div class="ov-bar"><i id="ov-prog"></i></div>
   <div class="ov-note" id="ov-note"></div>
 </div>
@@ -752,7 +772,20 @@ var SEP='\u0001';
 function stripCode(s){return String(s==null?'':s).replace(/^\d+\s*-\s*/,'').trim();}
 function itemFrom(s){var m=String(s==null?'':s).match(/\[(ITEM\w+)\]/i);return m?m[1].toUpperCase():'';}
 function colIdx(h,names){for(var n=0;n<names.length;n++){for(var i=0;i<h.length;i++){if(String(h[i]).trim().toLowerCase()===names[n].toLowerCase())return i;}}return -1;}
-function dayInt(v){if(v instanceof Date)return Math.floor(v.getTime()/86400000);var s=String(v).trim();var t=Date.parse(s);if(!isNaN(t))return Math.floor(t/86400000);var m=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);if(m){var y=+m[3];if(y<100)y+=2000;return Math.floor(Date.UTC(y,+m[2]-1,+m[1])/86400000);}return null;}
+var DATE_ORDER='DMY'; // 'DMY' (28/06/2026) or 'MDY' (06/28/2026); auto-detected per sales file
+function ymdInt(y,m,d){if(y<100)y+=2000;if(m<1||m>12||d<1||d>31)return null;return Math.floor(Date.UTC(y,m-1,d)/86400000);}
+function dayInt(v){
+  if(v instanceof Date)return ymdInt(v.getFullYear(),v.getMonth()+1,v.getDate());
+  var s=String(v==null?'':v).trim();if(!s)return null;var m;
+  if((m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/)))return ymdInt(+m[1],+m[2],+m[3]);          // 2026-06-28 (time ignored)
+  if((m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))){var a=+m[1],b=+m[2],y=+m[3];              // 28/06/2026 or 06/28/2026
+    if(a>12)return ymdInt(y,b,a); if(b>12)return ymdInt(y,a,b);
+    return DATE_ORDER==='MDY'?ymdInt(y,a,b):ymdInt(y,b,a);}
+  var t=new Date(s);if(!isNaN(t))return ymdInt(t.getFullYear(),t.getMonth()+1,t.getDate());               // "28 Jun 2026" etc, local calendar date
+  return null;}
+function detectDateOrder(vals){var dmy=0,mdy=0;
+  vals.forEach(function(s){var m=String(s==null?'':s).trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.]\d{2,4}/);if(!m)return;if(+m[1]>12)dmy++;else if(+m[2]>12)mdy++;});
+  return mdy>dmy?'MDY':'DMY';}
 function pctl(a,p){if(!a.length)return 0;if(a.length===1)return a[0];var i=p*(a.length-1),lo=Math.floor(i),hi=Math.ceil(i);return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(i-lo);}
 function ceil(x){return Math.ceil(x-1e-9);}
 function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){setTimeout(r,0);});});});}
@@ -775,7 +808,8 @@ function streamSalesPair(file){return new Promise(function(res,rej){
   Papa.parse(file,{skipEmptyLines:true,worker:false,chunkSize:1024*1024*4,
     chunk:function(out,parser){var rows=out.data,st=0;
       if(!header){header=rows[0];st=1;ci={prod:colIdx(header,['Product']),qty:colIdx(header,['Qty','Quantity']),store:colIdx(header,['Store','Branch','Location']),date:colIdx(header,['Posting Date','Date'])};
-        if(ci.prod<0||ci.qty<0||ci.store<0||ci.date<0){err=true;parser.abort();return;}}
+        if(ci.prod<0||ci.qty<0||ci.store<0||ci.date<0){err=true;parser.abort();return;}
+        DATE_ORDER=detectDateOrder(rows.slice(1).map(function(r){return r&&r[ci.date];}));}
       for(var i=st;i<rows.length;i++){var r=rows[i];if(!r||r.length<2)continue;
         var item=itemFrom(r[ci.prod]);if(!item)continue;var loc=stripCode(r[ci.store]);if(!loc)continue;
         var q=Number(r[ci.qty])||0;var d=dayInt(r[ci.date]);if(d===null)continue;if(d>end)end=d;
@@ -784,25 +818,37 @@ function streamSalesPair(file){return new Promise(function(res,rej){
       setOv(Math.min(60,15+Math.round((out.meta.cursor/(file.size||1))*45)),'Reading sales… '+fmt(seen)+' rows');},
     complete:function(){if(err){rej(new Error('Sales CSV needs columns: Product, Qty, Store, Posting Date.'));return;}res({pair:pair,end:end});},
     error:rej});});}
-function mergePair(base,add){add.forEach(function(o,k){var b=base.get(k);
-  if(!b){base.set(k,{days:new Map(o.days),first:o.first});}
-  else{o.days.forEach(function(q,d){b.days.set(d,q);});if(o.first<b.first)b.first=o.first;}});}
-function computeADS(pair,end){var ads=new Map();
-  pair.forEach(function(o,k){var sp=k.split(SEP);var vals=[];o.days.forEach(function(v){vals.push(v);});var net;
-    if(vals.length>=5){var s=vals.slice().sort(function(a,b){return a-b;});var cap=pctl(s,CFG.WINSOR);net=0;for(var j=0;j<vals.length;j++)net+=Math.min(vals[j],cap);}
-    else{net=0;for(var j2=0;j2<vals.length;j2++)net+=vals[j2];}
-    var active=(end-o.first)+1;if(active>70)active=70;if(active<7)active=7;var a=net/active;if(a<0)a=0;
+function mergePair(base,add){
+  /* Days present in the new file REPLACE those days in history (for every item x branch),
+     new days are appended. Re-uploading a corrected day never double-counts and
+     also clears rows that were removed from the corrected file. */
+  var newDays=new Set();add.forEach(function(o){o.days.forEach(function(_,d){newDays.add(d);});});
+  base.forEach(function(b,k){var hit=false;newDays.forEach(function(d){if(b.days.delete(d))hit=true;});
+    if(hit){if(!b.days.size){base.delete(k);return;}var mn=Infinity;b.days.forEach(function(_,d){if(d<mn)mn=d;});b.first=mn;}});
+  add.forEach(function(o,k){var b=base.get(k);
+    if(!b){base.set(k,{days:new Map(o.days),first:o.first});}
+    else{o.days.forEach(function(q,d){b.days.set(d,q);});if(o.first<b.first)b.first=o.first;}});
+  return newDays;}
+var ADS_WINDOW=70;
+function computeADS(pair,end){var ads=new Map();var wStart=end-(ADS_WINDOW-1);
+  pair.forEach(function(o,k){var sp=k.split(SEP);var vals=[];
+    o.days.forEach(function(v,d){if(d>=wStart&&d<=end)vals.push(v);});          // only sales inside the last 70 days
+    var net=0;
+    if(vals.length>=5){var s=vals.slice().sort(function(a,b){return a-b;});var cap=pctl(s,CFG.WINSOR);for(var j=0;j<vals.length;j++)net+=Math.min(vals[j],cap);}
+    else{for(var j2=0;j2<vals.length;j2++)net+=vals[j2];}
+    var active=end-Math.max(o.first,wStart)+1;if(active<7)active=7;             // days the pair was live inside that window
+    var a=net/active;if(a<0)a=0;
     var m=ads.get(sp[0]);if(!m){m=new Map();ads.set(sp[0],m);}m.set(sp[1],a);});
   return {ads:ads,end:end};}
 function buildSOH(rows){var h=rows[0];var ci={code:colIdx(h,['Product Code']),prod:colIdx(h,['Product','Name']),qty:colIdx(h,['Quantity','Qty']),loc:colIdx(h,['Warehouse','Location','Store','Branch'])};
   if(ci.qty<0||ci.loc<0||(ci.code<0&&ci.prod<0))throw new Error('SOH CSV needs: Product Code, Quantity, Warehouse.');
-  var wh=new Map(),branch=new Map();
+  var wh=new Map(),branch=new Map(),ex=new Map();
   for(var i=1;i<rows.length;i++){var r=rows[i];if(!r||r.length<2)continue;
     var item=ci.code>=0?String(r[ci.code]).trim().toUpperCase():itemFrom(r[ci.prod]);if(!item||item.indexOf('ITEM')!==0)continue;
     var loc=stripCode(r[ci.loc]);if(!loc)continue;var q=Math.max(0,Number(r[ci.qty])||0);
     if(loc===CFG.WAREHOUSE){wh.set(item,(wh.get(item)||0)+q);continue;}
-    if(CFG.EXCLUDE[loc])continue;var m=branch.get(item);if(!m){m=new Map();branch.set(item,m);}m.set(loc,(m.get(loc)||0)+q);}
-  return {wh:wh,branch:branch};}
+    if(CFG.EXCLUDE[loc]){var xm=ex.get(item);if(!xm){xm=new Map();ex.set(item,xm);}xm.set(loc,(xm.get(loc)||0)+q);continue;}var m=branch.get(item);if(!m){m=new Map();branch.set(item,m);}m.set(loc,(m.get(loc)||0)+q);}
+  return {wh:wh,branch:branch,ex:ex};}
 function buildMaster(rows){var h=rows[0];var ci={code:colIdx(h,['Product Code']),name:colIdx(h,['Name','Product']),div:colIdx(h,['Division']),dep:colIdx(h,['Department']),cat:colIdx(h,['Category']),sub:colIdx(h,['Sub Category','SubCategory'])};
   if(ci.code<0)throw new Error('Master CSV needs: Product Code, Division, Department, Category.');
   var map=new Map();
@@ -812,10 +858,11 @@ function buildMaster(rows){var h=rows[0];var ci={code:colIdx(h,['Product Code'])
 function median(a){if(!a.length)return 0;var s=a.slice().sort(function(x,y){return x-y;});var n=s.length;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;}
 var ACFG={MIN_HISTORY:14,Z:3,SPIKE_MULT:1.8,DROP_RATE:0.5,MIN_MED:2,WINDOW:60,DROP_FRAC:0.4};
 var ALERT_FLOOR=dayInt('2026-06-27');                 // no alerts before this date
-var ALERT_ARCHIVE={};                                  // { 'YYYY-MM-DD': {alerts:[...]} }
+var ALERT_ARCHIVE={};
+var ARCHIVE_VER=2;                                      // bump to force a clean rebuild of cached alert days                                  // { 'YYYY-MM-DD': {alerts:[...]} }
 var alMode='all';                                      // 'all' | 'branch'
 /* selection (default = everything ticked; we only track UNticked keys) */
-var UNSEL={plan:new Set(),unres:new Set(),alert:new Set(),top:new Set()};
+var UNSEL={plan:new Set(),unres:new Set(),alert:new Set(),top:new Set(),manual:new Set()};
 function keyPlan(r){return r.item+'\u0001'+r.from+'\u0001'+r.to;}
 function keyUnres(r){return r.item+'\u0001'+r.branch+'\u0001'+r.reason;}
 function keyAlert(r){return r.type+'\u0001'+r.item+'\u0001'+r.branch+'\u0001'+(RESULT&&RESULT.alertDate||'');}
@@ -922,7 +969,7 @@ async function loadSaved(){
     var sp=await idbGet('salesPair'), se=await idbGet('salesEnd'), so=await idbGet('soh'), ma=await idbGet('master');
     if(sp){STORE.salesPair=sp;STORE.salesEnd=(se==null?-Infinity:se);}
     if(so)STORE.soh=so; if(ma)STORE.master=ma;
-    try{var arc=await idbGet('alertArchive');if(arc&&typeof arc==='object')ALERT_ARCHIVE=arc;}catch(_2){}
+    try{var arc=await idbGet('alertArchive'),av=await idbGet('alertArchiveVer');if(arc&&typeof arc==='object'&&av===ARCHIVE_VER)ALERT_ARCHIVE=arc;}catch(_2){}
   }catch(e){STORAGE_OK=false;$('store-tip').textContent='⚠️ This browser is blocking storage (likely because the file is opened directly). Host on GitHub Pages to enable daily saving. The engine still works without saving.';}
   updateSaved();
 }
@@ -939,8 +986,9 @@ $('f-sales').addEventListener('change',async function(e){var f=e.target.files[0]
   showOv();await setOv(8,(salesMode==='add'?'Adding day to saved sales…':'Replacing saved sales…'),'');
   try{
     var fresh=await streamSalesPair(f);
-    if(salesMode==='replace'||!STORE.salesPair){STORE.salesPair=fresh.pair;STORE.salesEnd=fresh.end;}
-    else{mergePair(STORE.salesPair,fresh.pair);if(fresh.end>STORE.salesEnd)STORE.salesEnd=fresh.end;}
+    if(salesMode==='replace'||!STORE.salesPair){STORE.salesPair=fresh.pair;STORE.salesEnd=fresh.end;ALERT_ARCHIVE={};}
+    else{var touched=mergePair(STORE.salesPair,fresh.pair);if(fresh.end>STORE.salesEnd)STORE.salesEnd=fresh.end;
+      touched.forEach(function(d){for(var D=d;D<d+ACFG.WINDOW;D++)delete ALERT_ARCHIVE[dstr(D)];});} // affected alert days get recomputed on Run
     await setOv(95,'Saving…','');
     if(STORAGE_OK){try{await idbSet('salesPair',STORE.salesPair);await idbSet('salesEnd',STORE.salesEnd);}catch(_){STORAGE_OK=false;}}
   }catch(err){hideOv();alert('Problem: '+err.message);return;}
@@ -964,7 +1012,7 @@ $('f-master').addEventListener('change',async function(e){var f=e.target.files[0
 $('btn-clear').addEventListener('click',async function(){
   if(!confirm('Clear all saved data (sales history, SOH, master)?'))return;
   STORE={salesPair:null,salesEnd:-Infinity,soh:null,master:null};
-  ALERT_ARCHIVE={};UNSEL={plan:new Set(),unres:new Set(),alert:new Set(),top:new Set()};
+  ALERT_ARCHIVE={};UNSEL={plan:new Set(),unres:new Set(),alert:new Set(),top:new Set(),manual:new Set()};
   try{await idbClear();}catch(_){}
   ['sales','soh','master'].forEach(function(s){$('d-'+s).classList.remove('ok');$('n-'+s).textContent='';});
   updateSaved();
@@ -975,17 +1023,17 @@ $('btn-run').addEventListener('click',async function(){
   showOv();await setOv(30,'Computing ADS…','');
   var adsObj=computeADS(STORE.salesPair,STORE.salesEnd);
   await setOv(75,'Matching donors to receivers…','');await nextFrame();
-  RESULT=runEngine(adsObj,STORE.soh,STORE.master);
+  RESULT=runEngine(adsObj,STORE.soh,STORE.master);RESULT.ads=adsObj.ads;
   await setOv(88,'Logging daily alerts','');await nextFrame();
   buildAlertArchive(STORE.salesPair,STORE.salesEnd,STORE.master);
-  if(STORAGE_OK){try{await idbSet('alertArchive',ALERT_ARCHIVE);}catch(_a){}}
+  if(STORAGE_OK){try{await idbSet('alertArchive',ALERT_ARCHIVE);await idbSet('alertArchiveVer',ARCHIVE_VER);}catch(_a){}}
   RESULT.archive=ALERT_ARCHIVE;
   var dates=archiveDates();RESULT.alertDate=dates[0]||dstr(STORE.salesEnd);
   RESULT.alerts=(ALERT_ARCHIVE[RESULT.alertDate]||{}).alerts||[];
-  UNSEL={plan:new Set(),unres:new Set(),alert:new Set(),top:new Set()};
+  UNSEL={plan:new Set(),unres:new Set(),alert:new Set(),top:new Set(),manual:new Set()};
   await setOv(100,'Done','');
   renderAll();hideOv();
-  ['alert','dash','plan','unres'].forEach(function(v){var b=$('nav-'+v);b.disabled=false;b.style.opacity=1;});
+  ['alert','dash','plan','unres','manual'].forEach(function(v){var b=$('nav-'+v);b.disabled=false;b.style.opacity=1;});
   switchView('dash');
 });
 
@@ -1003,7 +1051,7 @@ function dl(content,fname,mime){var blob=new Blob([content],{type:mime+';charset
 
 /* ---------- nav ---------- */
 document.querySelectorAll('.navbtn').forEach(function(b){b.addEventListener('click',function(){if(b.disabled)return;switchView(b.dataset.view);});});
-var TITLES={upload:"Upload Data",alert:"Alerts",dash:"Dashboard",plan:"Rotation Plan",unres:"Unresolved"};function switchView(v){document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===v);});['upload','alert','dash','plan','unres'].forEach(function(x){$('view-'+x).classList.toggle('hide',x!==v);});$('pagetitle').textContent=TITLES[v]||"";if(window.innerWidth<=860)document.querySelector('.app').classList.remove('navopen');}
+var TITLES={upload:"Upload Data",alert:"Alerts",dash:"Dashboard",plan:"Rotation Plan",unres:"Unresolved",manual:"Manual Rotation"};function switchView(v){document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===v);});['upload','alert','dash','plan','unres','manual'].forEach(function(x){$('view-'+x).classList.toggle('hide',x!==v);});$('pagetitle').textContent=TITLES[v]||"";if(window.innerWidth<=860)document.querySelector('.app').classList.remove('navopen');}
 
 /* ---------- render ---------- */
 function renderAll(){
@@ -1023,6 +1071,7 @@ function renderAll(){
   buildMS('div','ms-div',RESULT.plan,'div',renderPlan);buildMS('dep','ms-dep',RESULT.plan,'dep',renderPlan);buildMS('cat','ms-cat',RESULT.plan,'cat',renderPlan);buildMS('sub','ms-sub',RESULT.plan,'sub',renderPlan);buildMS('qty','ms-qty',RESULT.plan,'qty',renderPlan,true);
   buildMS('udiv','ms-udiv',RESULT.unres,'div',renderUnres);buildMS('ucat','ms-ucat',RESULT.unres,'cat',renderUnres);
   renderPlan();renderUnres();
+  initManual();
 }
 function fillSel(sel,allLabel,arr){sel.innerHTML='<option value="">'+allLabel+'</option>'+arr.map(function(a){return '<option>'+esc(a)+'</option>';}).join('');}
 function uniqSorted(arr){return Array.from(new Set(arr)).filter(function(x){return x&&x!=='—';}).sort();}
@@ -1061,7 +1110,7 @@ $('modal').addEventListener('click',function(e){if(e.target===$('modal'))$('moda
 
 /* ---------- multi-select ---------- */
 var MSEL={}; // key -> Set
-var MSNAME={div:'Division',dep:'Department',cat:'Category',sub:'Sub Category',qty:'Move qty',tdiv:'Division',tdep:'Department',tcat:'Category',udiv:'Division',ucat:'Category'};
+var MSNAME={div:'Division',dep:'Department',cat:'Category',sub:'Sub Category',qty:'Move qty',tdiv:'Division',tdep:'Department',tcat:'Category',udiv:'Division',ucat:'Category',mfrom:'From',mto:'To',mdiv:'Division',mcat:'Category'};
 function buildMS(key,elId,data,field,onChange,numeric){
   MSEL[key]=MSEL[key]||new Set();
   var raw=Array.from(new Set(data.map(function(x){return x[field];}))).filter(function(x){return x!==''&&x!=null&&x!=='—';});
@@ -1253,8 +1302,91 @@ function closeExportPreview(){$('exp-modal').classList.add('hide');PENDING_EXPOR
   if(cc)cc.onclick=closeExportPreview;
   if(ov)ov.addEventListener('click',function(e){if(e.target===ov)closeExportPreview();});
 })();
-var EXPFN={top:topData,plan:planData,unres:unresData,alert:alertData};
-['top','plan','unres','alert'].forEach(function(p){var wrap=$('exp-'+p);if(!wrap)return;var btn=wrap.querySelector('.exp-btn'),menu=wrap.querySelector('.exp-menu');
+
+/* ---------- manual rotation (user-picked From -> To branches) ---------- */
+var MANUAL={rows:[],noBuyer:0,noBuyerItems:0};
+function allBranches(){var set=new Set();
+  if(STORE.soh){STORE.soh.branch.forEach(function(m){m.forEach(function(_,loc){set.add(loc);});});
+    if(STORE.soh.ex)STORE.soh.ex.forEach(function(m){m.forEach(function(_,loc){set.add(loc);});});}
+  if(RESULT&&RESULT.ads)RESULT.ads.forEach(function(m){m.forEach(function(_,loc){set.add(loc);});});
+  set.delete(CFG.WAREHOUSE);
+  return Array.from(set).sort();}
+function saveManualCfg(){if(!STORAGE_OK)return;try{idbSet('manualCfg',{from:Array.from(MSEL.mfrom||[]),to:Array.from(MSEL.mto||[]),keep:+$('mn-keep').value});}catch(_){}}
+function runManual(){
+  var from=MSEL.mfrom||new Set(),toAll=MSEL.mto||new Set();
+  var to=[];toAll.forEach(function(b){if(!from.has(b))to.push(b);});           // a branch can't send to itself
+  var keepDays=Math.max(0,+$('mn-keep').value||0);
+  var rows=[],noBuyer=0,noBuyerItems=new Set();
+  MANUAL={rows:rows,noBuyer:0,noBuyerItems:0,from:from.size,to:to.length};
+  if(!from.size||!to.length||!RESULT)return;
+  var ads=RESULT.ads,wh=STORE.soh.wh,mmap=STORE.master,ex=STORE.soh.ex||new Map();
+  var branch=new Map(STORE.soh.branch);                                          // + excluded branches (Rehab etc.) for manual moves
+  ex.forEach(function(xm,item){var m=new Map(branch.get(item)||[]);xm.forEach(function(q,loc){m.set(loc,(m.get(loc)||0)+q);});branch.set(item,m);});
+  branch.forEach(function(sMap,item){
+    var hasFrom=false;from.forEach(function(f){if((sMap.get(f)||0)>0)hasFrom=true;});if(!hasFrom)return;
+    var aMap=ads.get(item)||new Map();
+    var netads=0;aMap.forEach(function(v){netads+=v;});
+    var whSoh=wh.get(item)||0,whCover=netads>0?whSoh/netads:Infinity;
+    if(!((whCover<CFG.WH_TRIGGER)||(whSoh<=0)))return;if(netads<=0)return;       // same WH rule as normal plan
+    var recv=[],wsum=0;to.forEach(function(t){var a=aMap.get(t)||0;if(a>0){recv.push({loc:t,ads:a,soh:sMap.get(t)||0});wsum+=a;}});
+    var meta=mmap.get(item)||{name:'',div:'—',dep:'—',cat:'—',sub:'—'};
+    var added={},start=rows.length;
+    from.forEach(function(f){
+      var soh=sMap.get(f)||0,a=aMap.get(f)||0;
+      var keep=a>0?ceil(keepDays*a):0;var surplus=Math.floor(soh-keep);if(surplus<=0)return;
+      if(!recv.length){noBuyer+=surplus;noBuyerItems.add(item);return;}
+      // split surplus by ADS share, largest-remainder so the pieces add up exactly
+      var parts=recv.map(function(r){var x=surplus*r.ads/wsum;return {r:r,q:Math.floor(x),rem:x-Math.floor(x)};});
+      var left=surplus-parts.reduce(function(s,p){return s+p.q;},0);
+      parts.slice().sort(function(x,y){return y.rem-x.rem||y.r.ads-x.r.ads;}).forEach(function(p){if(left>0){p.q++;left--;}});
+      parts.forEach(function(p){if(p.q<=0)return;var r=p.r;added[r.loc]=(added[r.loc]||0)+p.q;
+        rows.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,sub:meta.sub,from:f,to:r.loc,qty:p.q,
+          donor:a>0?'Overstock':'Dead',fsoh:soh,fads:+a.toFixed(2),fkeep:keep,tsoh:r.soh,tads:+r.ads.toFixed(2),share:Math.round(r.ads/wsum*100),whsoh:whSoh});});
+    });
+    for(var ix=start;ix<rows.length;ix++){var x=rows[ix];x.tafter=+((x.tsoh+(added[x.to]||0))/x.tads).toFixed(1);}   // To cover after all From branches send
+  });
+  MANUAL.noBuyer=noBuyer;MANUAL.noBuyerItems=noBuyerItems.size;
+}
+function filteredManual(){var q=($('mn-search').value||'').toLowerCase();
+  return MANUAL.rows.filter(function(r){return inSet('mdiv',r.div)&&inSet('mcat',r.cat)&&(!q||String(r.item).toLowerCase().indexOf(q)>=0||String(r.name).toLowerCase().indexOf(q)>=0||String(r.from).toLowerCase().indexOf(q)>=0||String(r.to).toLowerCase().indexOf(q)>=0);});}
+function keyManual(r){return r.item+'\u0001'+r.from+'\u0001'+r.to;}
+function renderManual(){
+  var all=MANUAL.rows,units=0,items=new Set();all.forEach(function(r){units+=r.qty;items.add(r.item);});
+  $('ct-manual').textContent=fmt(all.length);
+  $('mn-kpis').innerHTML=[['v',all.length,'Transfer lines'],['v',units,'Units to move'],['v',items.size,'Items'],['alt',MANUAL.noBuyer,'Extra units with no seller in To'],['alt',MANUAL.noBuyerItems,'Items with no seller in To']].map(function(c){return '<div class="kpi '+(c[0]==='alt'?'alt':'')+'"><div class="v">'+fmt(c[1])+'</div><div class="l">'+c[2]+'</div></div>';}).join('');
+  var oldSoh=STORE.soh&&!STORE.soh.ex;
+  $('mn-count').innerHTML='';
+  var warn=$('mn-warn');if(warn)warn.classList.toggle('hide',!oldSoh);
+  if(!MANUAL.from||!MANUAL.to){$('mn-count').textContent='';$('mn-table').innerHTML='<tbody><tr><td class="empty">Upar se <b>From</b> aur <b>To</b> branches select kar — plan yahin ban jayega.</td></tr></tbody>';return;}
+  var rows=filteredManual().sort(function(a,b){return a.from.localeCompare(b.from)||a.item.localeCompare(b.item)||b.qty-a.qty;});
+  var u=rows.reduce(function(s,r){return s+r.qty;},0);
+  var note=fmt(rows.length)+' transfers · '+fmt(u)+' units · '+MANUAL.from+' From → '+MANUAL.to+' To branches';
+  var view=rows.slice(0,2000);if(rows.length>2000)note+=' · showing first 2,000 (export for all)';
+  $('mn-count').textContent=note;
+  $('mn-table').innerHTML='<thead><tr>'+selHead()+'<th>From branch</th><th>To branch</th><th>Item</th><th>Name</th><th>Move</th><th>Donor</th><th>From SOH</th><th>From ADS</th><th>From keeps</th><th>To SOH</th><th>To ADS</th><th>To share</th><th>To cover after</th><th>Division</th><th>Category</th></tr></thead><tbody>'+
+    (view.map(function(r){return '<tr>'+selCell('manual',keyManual(r))+'<td>'+esc(r.from)+'</td><td>'+esc(r.to)+'</td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td><b>'+r.qty+'</b></td><td><span class="pill '+(r.donor==='Dead'?'dead':'over')+'">'+r.donor+'</span></td><td>'+r.fsoh+'</td><td>'+r.fads+'</td><td>'+r.fkeep+'</td><td>'+r.tsoh+'</td><td>'+r.tads+'</td><td>'+r.share+'%</td><td>'+r.tafter+'d</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('')||'<tr><td colspan="16" class="empty">In branches ke beech kuch move karne layak nahi mila.</td></tr>')+'</tbody>';
+  wireSel('manual',$('mn-table'),rows,keyManual,renderManual);
+}
+function manualRecalc(){runManual();UNSEL.manual=new Set();
+  buildMS('mdiv','ms-mdiv',MANUAL.rows,'div',renderManual);buildMS('mcat','ms-mcat',MANUAL.rows,'cat',renderManual);
+  renderManual();saveManualCfg();}
+function buildBranchPickers(){var br=allBranches().map(function(b){return {b:b};});
+  buildMS('mfrom','ms-mfrom',br,'b',manualRecalc);buildMS('mto','ms-mto',br,'b',manualRecalc);}
+async function initManual(){
+  var cfg=null;try{cfg=await idbGet('manualCfg');}catch(_){}
+  var valid=new Set(allBranches());
+  MSEL.mfrom=new Set(((cfg&&cfg.from)||[]).filter(function(b){return valid.has(b);}));
+  MSEL.mto=new Set(((cfg&&cfg.to)||[]).filter(function(b){return valid.has(b);}));
+  if(cfg&&cfg.keep!=null)$('mn-keep').value=cfg.keep;
+  MSEL.mdiv=new Set();MSEL.mcat=new Set();$('mn-search').value='';
+  buildBranchPickers();manualRecalc();}
+$('mn-keep').addEventListener('change',manualRecalc);
+$('mn-search').addEventListener('input',renderManual);
+$('mn-reset').addEventListener('click',function(){['mfrom','mto','mdiv','mcat'].forEach(function(k){MSEL[k]=new Set();});$('mn-keep').value=CFG.TARGET_COVER;$('mn-search').value='';buildBranchPickers();manualRecalc();});
+function manualData(){var rows=selKeep('manual',filteredManual().sort(function(a,b){return a.from.localeCompare(b.from)||a.item.localeCompare(b.item);}),keyManual);
+  return {fname:'Manual_Rotation',sheet:'Manual',title:'Manual Rotation',data:rows.map(function(r){return {From_Branch:r.from,To_Branch:r.to,Item:r.item,Name:r.name,Move_Qty:r.qty,Donor_Type:r.donor,From_SOH:r.fsoh,From_ADS:r.fads,From_Keeps:r.fkeep,To_SOH:r.tsoh,To_ADS:r.tads,To_Share_Pct:r.share,To_Cover_After_Days:r.tafter,WH_SOH:r.whsoh,Division:r.div,Department:r.dep,Category:r.cat,Sub_Category:r.sub};})};}
+var EXPFN={top:topData,plan:planData,unres:unresData,alert:alertData,manual:manualData};
+['top','plan','unres','alert','manual'].forEach(function(p){var wrap=$('exp-'+p);if(!wrap)return;var btn=wrap.querySelector('.exp-btn'),menu=wrap.querySelector('.exp-menu');
   btn.addEventListener('click',function(e){e.stopPropagation();var open=!menu.classList.contains('hide');document.querySelectorAll('.exp-menu').forEach(function(m){m.classList.add('hide');});if(!open)menu.classList.remove('hide');});
   [].forEach.call(menu.querySelectorAll('button'),function(b){b.addEventListener('click',function(e){e.stopPropagation();menu.classList.add('hide');doExport(b.dataset.fmt,EXPFN[p]);});});});
 document.addEventListener('click',function(){document.querySelectorAll('.exp-menu').forEach(function(m){m.classList.add('hide');});});
