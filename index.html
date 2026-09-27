@@ -190,7 +190,7 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
       <button class="navbtn" data-view="manual" id="nav-manual" disabled><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 6.5l7 4.5"/><path d="M8.5 17.5l7-4.5"/></svg><span class="lbl">Manual Rotation</span><span class="ct" id="ct-manual">0</span></button>
     </nav>
     <div class="spacer"></div>
-    <div class="ver">7-day cover · WH trigger 7d · ADS 70d<br>Stockout-adjusted ADS<br>Overstock donor &gt; 30d · dead-first<br>v4.2 · saves data daily</div>
+    <div class="ver">7-day cover · WH trigger 7d · ADS 70d<br>Stockout-adjusted ADS<br>Overstock donor &gt; 30d · dead-first<br>v4.3 · saves data daily</div>
   </aside>
 
   <main class="main"><header class="topbar"><button class="burger" id="burger" title="Toggle sidebar"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button><div class="pt" id="pagetitle">Upload Data</div><div class="acc"><span class="gd"></span>Canteen · Warehouse &amp; Inventory</div></header><div class="wrap">
@@ -315,6 +315,7 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
     <section id="view-manual" class="hide">
       <h1>Manual Rotation</h1>
       <p class="sub">Tu decide kar kaunsi branches bhejengi aur kaunsi lengi. Har <b>From</b> branch apna <b>keep-days</b> ka stock rakhti hai (dead stock ho toh poora bhejti hai). Baaki extra <b>sirf selected To branches</b> mein unki sales (ADS) ke hisaab se baant diya jata hai. Warehouse rule normal plan jaisa hai: item tabhi aata hai jab WH mein 7 din se kam stock ho.</p>
+      <div class="tip">🍫 <b>Small-lot rule:</b> Category <b>Chocolate &amp; Biscuits</b> aur <b>Healthy Snacks</b> mein From ka bhejne layak stock <b>15 ya kam</b> ho (Department <b>Beverages</b> ke har item mein <b>8 ya kam</b>) toh woh <b>baanta nahi jaata</b> — poora ek hi To branch ko jaata hai jisko sabse zyada zaroorat hai (pehle SOH 0 wali, phir sabse kam cover). Wahi item kisi aur From mein bhi chhoti qty mein ho toh woh <b>agli urgent branch</b> ko jaata hai, jisko pehle mil chuka use nahi. Sabko ek baar mil jaye toh list phir upar se shuru. Isse zyada qty ho toh pehle jaisa sales ke hisaab se split hota hai.</div>
       <div class="toolbar">
         <div class="fld"><label>From branches (send)</label><div class="ms" id="ms-mfrom"><button type="button" class="ms-btn">From</button><div class="ms-pop hide"></div></div></div>
         <div class="fld"><label>To branches (receive)</label><div class="ms" id="ms-mto"><button type="button" class="ms-btn">To</button><div class="ms-pop hide"></div></div></div>
@@ -1374,6 +1375,15 @@ function allBranches(){var set=new Set();
   set.delete(CFG.WAREHOUSE);
   return Array.from(set).sort();}
 function saveManualCfg(){if(!STORAGE_OK)return;try{idbSet('manualCfg',{from:Array.from(MSEL.mfrom||[]),to:Array.from(MSEL.mto||[]),keep:+$('mn-keep').value});}catch(_){}}
+/* small-lot rule: in these groups a From lot at or below the limit is NOT split —
+   it goes whole to the single most urgent To branch; the next From lot of the same item
+   goes to the next branch in the urgency list (round-robin). Category is checked first, then Department. */
+var SMALL_LOT={dep:[{re:/beverage/i,lim:8}],                                        // Department = Beverages -> every item in it
+  cat:[{re:/choc\w*\s*(&|and|\/|,)?\s*biscuit|biscuit\w*\s*(&|and|\/|,)?\s*choc/i,lim:15},{re:/healthy\s*snack/i,lim:15}]};  // Category = Chocolate & Biscuits / Healthy Snacks
+function smallLotLimit(meta){if(!meta)return null;var d=String(meta.dep||''),c=String(meta.cat||''),k;
+  for(k=0;k<SMALL_LOT.dep.length;k++)if(SMALL_LOT.dep[k].re.test(d))return SMALL_LOT.dep[k].lim;
+  for(k=0;k<SMALL_LOT.cat.length;k++)if(SMALL_LOT.cat[k].re.test(c))return SMALL_LOT.cat[k].lim;
+  return null;}
 function runManual(){
   var from=MSEL.mfrom||new Set(),toAll=MSEL.mto||new Set();
   var to=[];toAll.forEach(function(b){if(!from.has(b))to.push(b);});           // a branch can't send to itself
@@ -1392,30 +1402,43 @@ function runManual(){
     if(!((whCover<CFG.WH_TRIGGER)||(whSoh<=0)))return;if(netads<=0)return;       // same WH rule as normal plan
     var recv=[],wsum=0;to.forEach(function(t){var a=aMap.get(t)||0;if(a>0){recv.push({loc:t,ads:a,soh:sMap.get(t)||0});wsum+=a;}});
     var meta=mmap.get(item)||{name:'',div:'—',dep:'—',cat:'—',sub:'—'};
-    var added={},start=rows.length;
+    var added={},start=rows.length,got={};
+    var lim=smallLotLimit(meta);                                                   // 15 / 8 / null
+    // urgency order of To branches: stock-out first, then lowest cover days, then higher sales
+    var rank=recv.slice().sort(function(x,y){return ((x.soh<=0?0:1)-(y.soh<=0?0:1))||(x.soh/x.ads-y.soh/y.ads)||(y.ads-x.ads)||x.loc.localeCompare(y.loc);});
+    var lots=[];
     from.forEach(function(f){
       var soh=sMap.get(f)||0,a=aMap.get(f)||0;
       var keep=a>0?ceil(keepDays*a):0;var surplus=Math.floor(soh-keep);if(surplus<=0)return;
       if(!recv.length){noBuyer+=surplus;noBuyerItems.add(item);return;}
+      lots.push({f:f,soh:soh,a:a,keep:keep,surplus:surplus,small:lim!=null&&surplus<=lim});});
+    // big lots first (split by sales), then small lots biggest-first, each to ONE branch
+    lots.sort(function(x,y){return ((x.small?1:0)-(y.small?1:0))||(y.surplus-x.surplus)||x.f.localeCompare(y.f);});
+    function put(l,r,q,share,rule){added[r.loc]=(added[r.loc]||0)+q;got[r.loc]=(got[r.loc]||0)+1;
+      rows.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,sub:meta.sub,from:l.f,to:r.loc,qty:q,
+        donor:l.a>0?'Overstock':'Dead',fsoh:l.soh,fads:+l.a.toFixed(2),fkeep:l.keep,tsoh:r.soh,tads:+r.ads.toFixed(2),share:share,whsoh:whSoh,rule:rule});}
+    lots.forEach(function(l){
+      if(l.small){                                                                // whole lot -> most urgent To that has received this item the fewest times
+        var best=null,bc=Infinity;rank.forEach(function(r){var c=got[r.loc]||0;if(c<bc){bc=c;best=r;}});
+        put(l,best,l.surplus,100,'One branch (≤'+lim+')');return;}
       // split surplus by ADS share, largest-remainder so the pieces add up exactly
-      var parts=recv.map(function(r){var x=surplus*r.ads/wsum;return {r:r,q:Math.floor(x),rem:x-Math.floor(x)};});
-      var left=surplus-parts.reduce(function(s,p){return s+p.q;},0);
+      var parts=recv.map(function(r){var x=l.surplus*r.ads/wsum;return {r:r,q:Math.floor(x),rem:x-Math.floor(x)};});
+      var left=l.surplus-parts.reduce(function(s,p){return s+p.q;},0);
       parts.slice().sort(function(x,y){return y.rem-x.rem||y.r.ads-x.r.ads;}).forEach(function(p){if(left>0){p.q++;left--;}});
-      parts.forEach(function(p){if(p.q<=0)return;var r=p.r;added[r.loc]=(added[r.loc]||0)+p.q;
-        rows.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,sub:meta.sub,from:f,to:r.loc,qty:p.q,
-          donor:a>0?'Overstock':'Dead',fsoh:soh,fads:+a.toFixed(2),fkeep:keep,tsoh:r.soh,tads:+r.ads.toFixed(2),share:Math.round(r.ads/wsum*100),whsoh:whSoh});});
+      parts.forEach(function(p){if(p.q<=0)return;put(l,p.r,p.q,Math.round(p.r.ads/wsum*100),lim!=null?('Split (>'+lim+')'):'Split by sales');});
     });
     for(var ix=start;ix<rows.length;ix++){var x=rows[ix];x.tafter=+((x.tsoh+(added[x.to]||0))/x.tads).toFixed(1);}   // To cover after all From branches send
   });
   MANUAL.noBuyer=noBuyer;MANUAL.noBuyerItems=noBuyerItems.size;
 }
+function ruleCell(t){t=t||'';return /^One/.test(t)?'<span class="pill med">'+esc(t)+'</span>':'<span style="color:var(--muted);font-size:11.5px">'+esc(t)+'</span>';}
 function filteredManual(){var q=($('mn-search').value||'').toLowerCase();
   return MANUAL.rows.filter(function(r){return inSet('mdiv',r.div)&&inSet('mcat',r.cat)&&(!q||String(r.item).toLowerCase().indexOf(q)>=0||String(r.name).toLowerCase().indexOf(q)>=0||String(r.from).toLowerCase().indexOf(q)>=0||String(r.to).toLowerCase().indexOf(q)>=0);});}
 function keyManual(r){return r.item+'\u0001'+r.from+'\u0001'+r.to;}
 function renderManual(){
   var all=MANUAL.rows,units=0,items=new Set();all.forEach(function(r){units+=r.qty;items.add(r.item);});
   $('ct-manual').textContent=fmt(all.length);
-  $('mn-kpis').innerHTML=[['v',all.length,'Transfer lines'],['v',units,'Units to move'],['v',items.size,'Items'],['alt',MANUAL.noBuyer,'Extra units with no seller in To'],['alt',MANUAL.noBuyerItems,'Items with no seller in To']].map(function(c){return '<div class="kpi '+(c[0]==='alt'?'alt':'')+'"><div class="v">'+fmt(c[1])+'</div><div class="l">'+c[2]+'</div></div>';}).join('');
+  $('mn-kpis').innerHTML=[['v',all.length,'Transfer lines'],['v',units,'Units to move'],['v',items.size,'Items'],['alt',all.filter(function(r){return /^One/.test(r.rule||'');}).length,'Small lots sent to one branch'],['alt',MANUAL.noBuyer,'Extra units with no seller in To'],['alt',MANUAL.noBuyerItems,'Items with no seller in To']].map(function(c){return '<div class="kpi '+(c[0]==='alt'?'alt':'')+'"><div class="v">'+fmt(c[1])+'</div><div class="l">'+c[2]+'</div></div>';}).join('');
   var oldSoh=STORE.soh&&!STORE.soh.ex;
   $('mn-count').innerHTML='';
   var warn=$('mn-warn');if(warn)warn.classList.toggle('hide',!oldSoh);
@@ -1425,8 +1448,8 @@ function renderManual(){
   var note=fmt(rows.length)+' transfers · '+fmt(u)+' units · '+MANUAL.from+' From → '+MANUAL.to+' To branches';
   var view=rows.slice(0,2000);if(rows.length>2000)note+=' · showing first 2,000 (export for all)';
   $('mn-count').textContent=note;
-  $('mn-table').innerHTML='<thead><tr>'+selHead()+'<th>From branch</th><th>To branch</th><th>Item</th><th>Name</th><th>Move</th><th>Donor</th><th>From SOH</th><th>From ADS</th><th>From keeps</th><th>To SOH</th><th>To ADS</th><th>To share</th><th>To cover after</th><th>Division</th><th>Category</th></tr></thead><tbody>'+
-    (view.map(function(r){return '<tr>'+selCell('manual',keyManual(r))+'<td>'+esc(r.from)+'</td><td>'+esc(r.to)+'</td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td><b>'+r.qty+'</b></td><td><span class="pill '+(r.donor==='Dead'?'dead':'over')+'">'+r.donor+'</span></td><td>'+r.fsoh+'</td><td>'+r.fads+'</td><td>'+r.fkeep+'</td><td>'+r.tsoh+'</td><td>'+r.tads+'</td><td>'+r.share+'%</td><td>'+r.tafter+'d</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('')||'<tr><td colspan="16" class="empty">In branches ke beech kuch move karne layak nahi mila.</td></tr>')+'</tbody>';
+  $('mn-table').innerHTML='<thead><tr>'+selHead()+'<th>From branch</th><th>To branch</th><th>Item</th><th>Name</th><th>Move</th><th>Donor</th><th>From SOH</th><th>From ADS</th><th>From keeps</th><th>To SOH</th><th>To ADS</th><th>To share</th><th>Rule</th><th>To cover after</th><th>Division</th><th>Category</th></tr></thead><tbody>'+
+    (view.map(function(r){return '<tr>'+selCell('manual',keyManual(r))+'<td>'+esc(r.from)+'</td><td>'+esc(r.to)+'</td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td><b>'+r.qty+'</b></td><td><span class="pill '+(r.donor==='Dead'?'dead':'over')+'">'+r.donor+'</span></td><td>'+r.fsoh+'</td><td>'+r.fads+'</td><td>'+r.fkeep+'</td><td>'+r.tsoh+'</td><td>'+r.tads+'</td><td>'+r.share+'%</td><td>'+ruleCell(r.rule)+'</td><td>'+r.tafter+'d</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('')||'<tr><td colspan="17" class="empty">In branches ke beech kuch move karne layak nahi mila.</td></tr>')+'</tbody>';
   wireSel('manual',$('mn-table'),rows,keyManual,renderManual);
 }
 function manualRecalc(){runManual();UNSEL.manual=new Set();
@@ -1446,7 +1469,7 @@ $('mn-keep').addEventListener('change',manualRecalc);
 $('mn-search').addEventListener('input',renderManual);
 $('mn-reset').addEventListener('click',function(){['mfrom','mto','mdiv','mcat'].forEach(function(k){MSEL[k]=new Set();});$('mn-keep').value=CFG.TARGET_COVER;$('mn-search').value='';buildBranchPickers();manualRecalc();});
 function manualData(){var rows=selKeep('manual',filteredManual().sort(function(a,b){return a.from.localeCompare(b.from)||a.item.localeCompare(b.item);}),keyManual);
-  return {fname:'Manual_Rotation',sheet:'Manual',title:'Manual Rotation',data:rows.map(function(r){return {From_Branch:r.from,To_Branch:r.to,Item:r.item,Name:r.name,Move_Qty:r.qty,Donor_Type:r.donor,From_SOH:r.fsoh,From_ADS:r.fads,From_Keeps:r.fkeep,To_SOH:r.tsoh,To_ADS:r.tads,To_Share_Pct:r.share,To_Cover_After_Days:r.tafter,WH_SOH:r.whsoh,Division:r.div,Department:r.dep,Category:r.cat,Sub_Category:r.sub};})};}
+  return {fname:'Manual_Rotation',sheet:'Manual',title:'Manual Rotation',data:rows.map(function(r){return {From_Branch:r.from,To_Branch:r.to,Item:r.item,Name:r.name,Move_Qty:r.qty,Donor_Type:r.donor,From_SOH:r.fsoh,From_ADS:r.fads,From_Keeps:r.fkeep,To_SOH:r.tsoh,To_ADS:r.tads,To_Share_Pct:r.share,Rule:r.rule,To_Cover_After_Days:r.tafter,WH_SOH:r.whsoh,Division:r.div,Department:r.dep,Category:r.cat,Sub_Category:r.sub};})};}
 var EXPFN={top:topData,plan:planData,unres:unresData,alert:alertData,manual:manualData};
 ['top','plan','unres','alert','manual'].forEach(function(p){var wrap=$('exp-'+p);if(!wrap)return;var btn=wrap.querySelector('.exp-btn'),menu=wrap.querySelector('.exp-menu');
   btn.addEventListener('click',function(e){e.stopPropagation();var open=!menu.classList.contains('hide');document.querySelectorAll('.exp-menu').forEach(function(m){m.classList.add('hide');});if(!open)menu.classList.remove('hide');});
