@@ -68,6 +68,7 @@ h1{font-size:21px;font-weight:700;margin-bottom:3px;letter-spacing:-.02em}
 .drop{border:1.5px dashed var(--line);border-radius:13px;padding:20px 14px;text-align:center;background:var(--card);cursor:pointer;transition:.15s;flex:1}
 .drop:hover{border-color:var(--green-mid);background:var(--soft)}
 .drop.ok{border-style:solid;border-color:var(--green-ok);background:#F0F7F2}
+.drop.over{border-style:solid;border-color:var(--gold2);background:#FBF7E8}
 .drop .ic{display:flex;justify-content:center;margin-bottom:8px;color:var(--green-mid)}
 .drop .ic svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.6}
 .drop .lbl{font-weight:600;font-size:13px}
@@ -171,6 +172,9 @@ tr.brk td{background:var(--soft);font-weight:700;color:var(--green);font-size:11
 table.exp-edit td[contenteditable]{cursor:text;min-width:46px}
 table.exp-edit td[contenteditable]:focus{outline:2px solid var(--orange,#C96442);outline-offset:-2px;background:#fff7f3}
 table.exp-edit td[contenteditable]:hover{background:var(--soft)}
+.oos-tg{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;user-select:none}
+.oos-tg input{width:15px;height:15px;accent-color:var(--green);cursor:pointer}
+.oosd{background:#FBEFD2;color:var(--amber);font-weight:700;font-size:11px;padding:1px 7px;border-radius:10px}
 </style>
 </head>
 <body>
@@ -186,7 +190,7 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
       <button class="navbtn" data-view="manual" id="nav-manual" disabled><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 6.5l7 4.5"/><path d="M8.5 17.5l7-4.5"/></svg><span class="lbl">Manual Rotation</span><span class="ct" id="ct-manual">0</span></button>
     </nav>
     <div class="spacer"></div>
-    <div class="ver">7-day cover · WH trigger 7d · ADS 70d<br>Overstock donor &gt; 30d · dead-first<br>v4 · saves data daily</div>
+    <div class="ver">7-day cover · WH trigger 7d · ADS 70d<br>Stockout-adjusted ADS<br>Overstock donor &gt; 30d · dead-first<br>v4.2 · saves data daily</div>
   </aside>
 
   <main class="main"><header class="topbar"><button class="burger" id="burger" title="Toggle sidebar"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button><div class="pt" id="pagetitle">Upload Data</div><div class="acc"><span class="gd"></span>Canteen · Warehouse &amp; Inventory</div></header><div class="wrap">
@@ -199,11 +203,13 @@ table.exp-edit td[contenteditable]:hover{background:var(--soft)}
         <div class="st"><span class="dot" id="dot-soh"></span><b id="sv-soh">SOH: none</b></div>
         <div class="st"><span class="dot" id="dot-master"></span><b id="sv-master">Master: none</b></div>
         <div class="sp"></div>
+        <label class="oos-tg" title="Sales mein 0 wale din jo stock-out lagte hain (SOH 0 aaj, ya regular seller ka lamba gap) ADS se hata do"><input type="checkbox" id="oos-on" checked> Stockout-adjusted ADS</label>
         <button class="btn" id="btn-run" disabled>▶ Run Rotation Engine</button>
         <button class="btn ghost sm" id="btn-clear">Clear saved data</button>
       </div>
       <div class="tip" id="store-tip">💾 Data is saved in this browser. For reliable saving, host this file on GitHub Pages (https) — under a double-clicked file:// page some browsers block storage.</div>
       <div class="tip" style="background:#FBF7E8;border-color:#EBDCA8">🔁 <b>How daily data behaves:</b> Master &amp; SOH are <b>replaced</b> by each new upload (latest wins). Sales in <b>“Add a day”</b> mode: <b>new dates are added</b> to history, and a date that's <b>already saved is replaced</b> by the new file — so re-uploading a corrected day never double-counts. ADS uses the <b>last 70 days</b>.</div>
+      <div class="tip">📦 <b>Stockout-adjusted ADS:</b> stock-out ka data nahi hai, isliye app khud andaza lagata hai — (1) aaj branch ka <b>SOH 0</b> hai toh last sale ke baad ke 0 wale din (max 30) stock-out maane jaate hain; (2) jo item <b>regular bikta hai</b> uska achanak lamba 0-sales gap (itna lamba ki normally 1% se kam chance ho) bhi stock-out maana jaata hai. Ye din ADS se hata diye jaate hain. Stock pada hai aur nahi bik raha — toh kuch nahi hataya jaata (woh asli demand drop hai). Checkbox off karke purana hisaab dekh sakte ho.</div>
 
       <div class="drops">
         <div class="dwrap">
@@ -762,7 +768,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
 <script>
 var $=function(id){return document.getElementById(id);};
 var fmt=function(n){return Number(n).toLocaleString();};
-var esc=function(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
 var RESULT=null;
 var STORE={salesPair:null,salesEnd:-Infinity,soh:null,master:null}; // in-memory mirror of saved data
 var salesMode='add';
@@ -830,16 +836,48 @@ function mergePair(base,add){
     else{o.days.forEach(function(q,d){b.days.set(d,q);});if(o.first<b.first)b.first=o.first;}});
   return newDays;}
 var ADS_WINDOW=70;
-function computeADS(pair,end){var ads=new Map();var wStart=end-(ADS_WINDOW-1);
-  pair.forEach(function(o,k){var sp=k.split(SEP);var vals=[];
-    o.days.forEach(function(v,d){if(d>=wStart&&d<=end)vals.push(v);});          // only sales inside the last 70 days
+/* ---------- stockout estimate (no OOS data needed) ----------
+   A) Tail: branch SOH is 0 today  -> the no-sale days since the last sale were out of stock
+      (only if that run is <= MAX_TAIL days; longer = probably not carried there any more).
+   B) Gaps: for a regular seller (sells on >= MIN_RATE of days), a run of zero-sale days so long
+      it would happen by chance < P (1%) is treated as a stockout. Run length needed adapts to how
+      often the item sells: sells 80% of days -> 4+ days, 50% -> 7+ days, 40% -> 10+ days.
+   Excluded days are dropped from BOTH the sales and the day-count, so ADS = real demand when in stock.
+   If a branch has stock but stopped selling, nothing is excluded (that's a real demand drop). */
+var OOS={MAX_TAIL:30,MIN_RATE:0.4,MIN_SALE_DAYS:5,MIN_GAP:4,P:0.01};
+function sohLookup(soh){var locs=new Set();
+  if(soh){[soh.branch,soh.ex].forEach(function(M){if(M)M.forEach(function(m){m.forEach(function(_,l){locs.add(l);});});});}
+  return {known:function(loc){return locs.has(loc);},
+    get:function(item,loc){if(!soh)return 0;var m=soh.branch&&soh.branch.get(item),q=m&&m.get(loc);
+      if(q==null&&soh.ex){var x=soh.ex.get(item);q=x&&x.get(loc);}return q||0;}};}
+function oosDays(o,base,end,sohNow,sohKnown){
+  var ex=new Set(),last=-Infinity,saleDays=0;
+  for(var d=base;d<=end;d++){if((o.days.get(d)||0)>0){saleDays++;last=d;}}
+  if(!isFinite(last))return ex;
+  var tail=end-last;                                                                 // A) out of stock right now
+  if(sohKnown&&sohNow<=0&&tail>0&&tail<=OOS.MAX_TAIL&&saleDays>=2){for(var t=last+1;t<=end;t++)ex.add(t);}
+  var span=last-base+1,r=saleDays/span;                                             // B) unusual gaps
+  if(saleDays>=OOS.MIN_SALE_DAYS&&r>=OOS.MIN_RATE&&r<1){
+    var k=Math.max(OOS.MIN_GAP,Math.ceil(Math.log(OOS.P)/Math.log(1-r))),run=null;
+    for(var d2=base;d2<=last;d2++){var sold=(o.days.get(d2)||0)>0;
+      if(!sold){if(run===null)run=d2;}
+      else if(run!==null){if(d2-run>=k)for(var z=run;z<d2;z++)ex.add(z);run=null;}}}
+  return ex;}
+function computeADS(pair,end,soh,oosOn){var ads=new Map(),oos=new Map(),oosPairs=0,oosTot=0;var wStart=end-(ADS_WINDOW-1);
+  var SL=sohLookup(soh);
+  pair.forEach(function(o,k){var sp=k.split(SEP),item=sp[0],loc=sp[1];
+    var base=Math.max(o.first,wStart);
+    var ex=(oosOn&&soh)?oosDays(o,base,end,SL.get(item,loc),SL.known(loc)):new Set();
+    var vals=[];
+    o.days.forEach(function(v,d){if(d>=wStart&&d<=end&&!ex.has(d))vals.push(v);});  // only sales inside the last 70 days, minus est. stockout days
     var net=0;
     if(vals.length>=5){var s=vals.slice().sort(function(a,b){return a-b;});var cap=pctl(s,CFG.WINSOR);for(var j=0;j<vals.length;j++)net+=Math.min(vals[j],cap);}
     else{for(var j2=0;j2<vals.length;j2++)net+=vals[j2];}
-    var active=end-Math.max(o.first,wStart)+1;if(active<7)active=7;             // days the pair was live inside that window
+    var active=end-base+1-ex.size;if(active<7)active=7;                                // in-stock days the pair was live inside that window
     var a=net/active;if(a<0)a=0;
-    var m=ads.get(sp[0]);if(!m){m=new Map();ads.set(sp[0],m);}m.set(sp[1],a);});
-  return {ads:ads,end:end};}
+    var m=ads.get(item);if(!m){m=new Map();ads.set(item,m);}m.set(loc,a);
+    if(ex.size){var om=oos.get(item);if(!om){om=new Map();oos.set(item,om);}om.set(loc,ex.size);oosPairs++;oosTot+=ex.size;}});
+  return {ads:ads,end:end,oos:oos,oosPairs:oosPairs,oosDays:oosTot};}
 function buildSOH(rows){var h=rows[0];var ci={code:colIdx(h,['Product Code']),prod:colIdx(h,['Product','Name']),qty:colIdx(h,['Quantity','Qty']),loc:colIdx(h,['Warehouse','Location','Store','Branch'])};
   if(ci.qty<0||ci.loc<0||(ci.code<0&&ci.prod<0))throw new Error('SOH CSV needs: Product Code, Quantity, Warehouse.');
   var wh=new Map(),branch=new Map(),ex=new Map();
@@ -916,26 +954,26 @@ function runEngine(adsObj,sohObj,mmap){
   var items=new Set();ads.forEach(function(_,k){items.add(k);});branch.forEach(function(_,k){items.add(k);});wh.forEach(function(_,k){items.add(k);});
   var plan=[],unres=[],totMove=0,deadMove=0,overMove=0;
   items.forEach(function(item){
-    var aMap=ads.get(item)||new Map(),sMap=branch.get(item)||new Map();
+    var aMap=ads.get(item)||new Map(),sMap=branch.get(item)||new Map(),oMap=(adsObj.oos&&adsObj.oos.get(item))||new Map();
     var netads=0;aMap.forEach(function(v){netads+=v;});
     var whSoh=wh.get(item)||0;var whCover=netads>0?whSoh/netads:Infinity;
     if(!((whCover<CFG.WH_TRIGGER)||(whSoh<=0)))return;if(netads<=0)return;
     var locs=new Set();aMap.forEach(function(_,k){locs.add(k);});sMap.forEach(function(_,k){locs.add(k);});
-    var grid=[];locs.forEach(function(loc){var a=aMap.get(loc)||0;var soh=sMap.get(loc)||0;grid.push({loc:loc,ads:a,soh:soh,cover:a>0?soh/a:Infinity});});
-    var recv=[];for(var i=0;i<grid.length;i++){var g=grid[i];if(g.ads>0&&g.cover<CFG.TARGET_COVER){var need=ceil(CFG.TARGET_COVER*g.ads)-g.soh;if(need>0)recv.push({loc:g.loc,ads:g.ads,soh:g.soh,cover:g.cover,need:need});}}
+    var grid=[];locs.forEach(function(loc){var a=aMap.get(loc)||0;var soh=sMap.get(loc)||0;grid.push({loc:loc,ads:a,soh:soh,cover:a>0?soh/a:Infinity,oos:oMap.get(loc)||0});});
+    var recv=[];for(var i=0;i<grid.length;i++){var g=grid[i];if(g.ads>0&&g.cover<CFG.TARGET_COVER){var need=ceil(CFG.TARGET_COVER*g.ads)-g.soh;if(need>0)recv.push({loc:g.loc,ads:g.ads,soh:g.soh,cover:g.cover,need:need,oos:g.oos});}}
     if(!recv.length)return;
     var donors=[];for(var j=0;j<grid.length;j++){var gg=grid[j];
       if(gg.ads===0&&gg.soh>0)donors.push({loc:gg.loc,type:'Dead',avail:Math.floor(gg.soh),soh:gg.soh,ads:0});
       else if(gg.ads>0&&gg.cover>CFG.OVERSTOCK_COVER){var sur=gg.soh-ceil(CFG.TARGET_COVER*gg.ads);if(sur>0)donors.push({loc:gg.loc,type:'Overstock',avail:Math.floor(sur),soh:gg.soh,ads:gg.ads});}}
     var meta=mmap.get(item)||{name:'',div:'—',dep:'—',cat:'—',sub:'—'};
-    if(!donors.length){for(var ri=0;ri<recv.length;ri++)unres.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,branch:recv[ri].loc,soh:recv[ri].soh,ads:+recv[ri].ads.toFixed(2),short:recv[ri].need,reason:'No donor stock'});return;}
+    if(!donors.length){for(var ri=0;ri<recv.length;ri++)unres.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,branch:recv[ri].loc,soh:recv[ri].soh,ads:+recv[ri].ads.toFixed(2),oos:recv[ri].oos,short:recv[ri].need,reason:'No donor stock'});return;}
     var DRANK={Dead:0,Overstock:1};
     donors.sort(function(a,b){return (DRANK[a.type]-DRANK[b.type])||(b.avail-a.avail);});
     recv.sort(function(a,b){var o=(a.soh===0?0:1)-(b.soh===0?0:1);return o!==0?o:a.cover-b.cover;});
     for(var k2=0;k2<recv.length;k2++){var r=recv[k2],need2=r.need;
       for(var d2=0;d2<donors.length;d2++){var dn=donors[d2];if(need2<=0)break;if(dn.avail<=0)continue;var mv=Math.min(dn.avail,need2);if(mv<=0)continue;dn.avail-=mv;need2-=mv;totMove+=mv;if(dn.type==='Dead')deadMove+=mv;else overMove+=mv;
-        plan.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,sub:meta.sub,from:dn.loc,to:r.loc,qty:mv,donor:dn.type,dsoh:dn.soh,dads:+dn.ads.toFixed(2),rsoh:r.soh,rads:+r.ads.toFixed(2),rcover:+r.cover.toFixed(1),need:r.need,priority:r.soh===0?'High':'Medium',whsoh:whSoh,score:mv*r.ads});}
-      if(need2>0)unres.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,branch:r.loc,soh:r.soh,ads:+r.ads.toFixed(2),short:need2,reason:'Donor stock short'});}
+        plan.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,sub:meta.sub,from:dn.loc,to:r.loc,qty:mv,donor:dn.type,dsoh:dn.soh,dads:+dn.ads.toFixed(2),rsoh:r.soh,rads:+r.ads.toFixed(2),rcover:+r.cover.toFixed(1),need:r.need,roos:r.oos,priority:r.soh===0?'High':'Medium',whsoh:whSoh,score:mv*r.ads});}
+      if(need2>0)unres.push({item:item,name:meta.name,div:meta.div,dep:meta.dep,cat:meta.cat,branch:r.loc,soh:r.soh,ads:+r.ads.toFixed(2),oos:r.oos,short:need2,reason:'Donor stock short'});}
   });
   var byItem=new Map();
   for(var p2=0;p2<plan.length;p2++){var pp=plan[p2];if(String(pp.div).toLowerCase()==='delist')continue;
@@ -947,7 +985,7 @@ function runEngine(adsObj,sohObj,mmap){
   var short=0;for(var u=0;u<unres.length;u++)short+=unres[u].short;
   var hi=0;for(var hh=0;hh<plan.length;hh++)if(plan[hh].priority==='High')hi++;
   var kpi={lines:plan.length,units:totMove,items:planItems.size,high:hi,dead:deadMove,over:overMove,unres:unres.length,short:short};
-  return {plan:plan,unres:unres,kpi:kpi,topItems:topItems,meta:{end:adsObj.end,salesItems:ads.size}};
+  return {plan:plan,unres:unres,kpi:kpi,topItems:topItems,meta:{end:adsObj.end,salesItems:ads.size,oosOn:!!adsObj.oosOn,oosPairs:adsObj.oosPairs||0,oosDays:adsObj.oosDays||0}};
 }
 
 /* ---------- saved-data status ---------- */
@@ -969,6 +1007,7 @@ async function loadSaved(){
     var sp=await idbGet('salesPair'), se=await idbGet('salesEnd'), so=await idbGet('soh'), ma=await idbGet('master');
     if(sp){STORE.salesPair=sp;STORE.salesEnd=(se==null?-Infinity:se);}
     if(so)STORE.soh=so; if(ma)STORE.master=ma;
+    try{var oo=await idbGet('oosOn');if(oo===false)$('oos-on').checked=false;}catch(_3){}
     try{var arc=await idbGet('alertArchive'),av=await idbGet('alertArchiveVer');if(arc&&typeof arc==='object'&&av===ARCHIVE_VER)ALERT_ARCHIVE=arc;}catch(_2){}
   }catch(e){STORAGE_OK=false;$('store-tip').textContent='⚠️ This browser is blocking storage (likely because the file is opened directly). Host on GitHub Pages to enable daily saving. The engine still works without saving.';}
   updateSaved();
@@ -981,8 +1020,8 @@ $('seg-sales').addEventListener('click',function(e){var b=e.target.closest('butt
 function showOv(){$('overlay').classList.remove('hide');}
 function hideOv(){$('overlay').classList.add('hide');}
 
-$('f-sales').addEventListener('change',async function(e){var f=e.target.files[0];if(!f)return;
-  $('d-sales').classList.add('ok');$('n-sales').textContent='✓ '+f.name;
+$('f-sales').addEventListener('change',async function(e){var f=e.target.files[0];e.target.value='';if(!f)return;
+  $('d-sales').classList.add('ok');$('n-sales').textContent='✓ '+f.name;var _fail=function(){$('d-sales').classList.remove('ok');$('n-sales').textContent='';};
   showOv();await setOv(8,(salesMode==='add'?'Adding day to saved sales…':'Replacing saved sales…'),'');
   try{
     var fresh=await streamSalesPair(f);
@@ -991,23 +1030,39 @@ $('f-sales').addEventListener('change',async function(e){var f=e.target.files[0]
       touched.forEach(function(d){for(var D=d;D<d+ACFG.WINDOW;D++)delete ALERT_ARCHIVE[dstr(D)];});} // affected alert days get recomputed on Run
     await setOv(95,'Saving…','');
     if(STORAGE_OK){try{await idbSet('salesPair',STORE.salesPair);await idbSet('salesEnd',STORE.salesEnd);}catch(_){STORAGE_OK=false;}}
-  }catch(err){hideOv();alert('Problem: '+err.message);return;}
+  }catch(err){hideOv();_fail();alert('Problem: '+err.message);return;}
   hideOv();updateSaved();
 });
-$('f-soh').addEventListener('change',async function(e){var f=e.target.files[0];if(!f)return;
-  $('d-soh').classList.add('ok');$('n-soh').textContent='✓ '+f.name;
+$('f-soh').addEventListener('change',async function(e){var f=e.target.files[0];e.target.value='';if(!f)return;
+  $('d-soh').classList.add('ok');$('n-soh').textContent='✓ '+f.name;var _fail=function(){$('d-soh').classList.remove('ok');$('n-soh').textContent='';};
   showOv();await setOv(40,'Reading SOH…','');
   try{STORE.soh=buildSOH(await parseCsvAll(f));if(STORAGE_OK){try{await idbSet('soh',STORE.soh);}catch(_){STORAGE_OK=false;}}}
-  catch(err){hideOv();alert('Problem: '+err.message);return;}
+  catch(err){hideOv();_fail();alert('Problem: '+err.message);return;}
   hideOv();updateSaved();
 });
-$('f-master').addEventListener('change',async function(e){var f=e.target.files[0];if(!f)return;
-  $('d-master').classList.add('ok');$('n-master').textContent='✓ '+f.name;
+$('f-master').addEventListener('change',async function(e){var f=e.target.files[0];e.target.value='';if(!f)return;
+  $('d-master').classList.add('ok');$('n-master').textContent='✓ '+f.name;var _fail=function(){$('d-master').classList.remove('ok');$('n-master').textContent='';};
   showOv();await setOv(40,'Reading Master…','');
   try{STORE.master=buildMaster(await parseCsvAll(f));if(STORAGE_OK){try{await idbSet('master',STORE.master);}catch(_){STORAGE_OK=false;}}}
-  catch(err){hideOv();alert('Problem: '+err.message);return;}
+  catch(err){hideOv();_fail();alert('Problem: '+err.message);return;}
   hideOv();updateSaved();
 });
+
+/* drag & drop onto the Sales / SOH / Master boxes */
+['dragover','drop'].forEach(function(ev){window.addEventListener(ev,function(e){e.preventDefault();});}); // stray drops never open the file / leave the page
+['sales','soh','master'].forEach(function(key){var box=$('d-'+key),inp=$('f-'+key),depth=0;
+  box.addEventListener('dragenter',function(e){e.preventDefault();depth++;box.classList.add('over');});
+  box.addEventListener('dragover',function(e){e.preventDefault();e.dataTransfer.dropEffect='copy';});
+  box.addEventListener('dragleave',function(){if(--depth<=0){depth=0;box.classList.remove('over');}});
+  box.addEventListener('drop',function(e){e.preventDefault();e.stopPropagation();depth=0;box.classList.remove('over');
+    var fl=e.dataTransfer&&e.dataTransfer.files;if(!fl||!fl.length)return;
+    if(fl.length>1){alert('Ek box mein ek hi file drop karo.');return;}
+    if(!/\.csv$/i.test(fl[0].name)){alert('Sirf .csv file chalegi — "'+fl[0].name+'" CSV nahi hai.');return;}
+    try{var dt=new DataTransfer();dt.items.add(fl[0]);inp.files=dt.files;}catch(_){inp.files=fl;}
+    inp.dispatchEvent(new Event('change'));});
+});
+
+$('oos-on').addEventListener('change',function(){if(STORAGE_OK){idbSet('oosOn',this.checked).catch(function(){});}});
 
 $('btn-clear').addEventListener('click',async function(){
   if(!confirm('Clear all saved data (sales history, SOH, master)?'))return;
@@ -1020,10 +1075,12 @@ $('btn-clear').addEventListener('click',async function(){
 
 $('btn-run').addEventListener('click',async function(){
   if(!(STORE.salesPair&&STORE.soh&&STORE.master)){alert('Need Sales, SOH and Master first.');return;}
-  showOv();await setOv(30,'Computing ADS…','');
-  var adsObj=computeADS(STORE.salesPair,STORE.salesEnd);
+  showOv();
+  try{
+  await setOv(30,'Computing ADS…','');
+  var adsObj=computeADS(STORE.salesPair,STORE.salesEnd,STORE.soh,$('oos-on').checked);
   await setOv(75,'Matching donors to receivers…','');await nextFrame();
-  RESULT=runEngine(adsObj,STORE.soh,STORE.master);RESULT.ads=adsObj.ads;
+  adsObj.oosOn=$('oos-on').checked;RESULT=runEngine(adsObj,STORE.soh,STORE.master);RESULT.ads=adsObj.ads;
   await setOv(88,'Logging daily alerts','');await nextFrame();
   buildAlertArchive(STORE.salesPair,STORE.salesEnd,STORE.master);
   if(STORAGE_OK){try{await idbSet('alertArchive',ALERT_ARCHIVE);await idbSet('alertArchiveVer',ARCHIVE_VER);}catch(_a){}}
@@ -1032,9 +1089,11 @@ $('btn-run').addEventListener('click',async function(){
   RESULT.alerts=(ALERT_ARCHIVE[RESULT.alertDate]||{}).alerts||[];
   UNSEL={plan:new Set(),unres:new Set(),alert:new Set(),top:new Set(),manual:new Set()};
   await setOv(100,'Done','');
-  renderAll();hideOv();
+  renderAll();
   ['alert','dash','plan','unres','manual'].forEach(function(v){var b=$('nav-'+v);b.disabled=false;b.style.opacity=1;});
   switchView('dash');
+  }catch(err){console.error(err);alert('Run failed: '+(err&&err.message||err)+'\nCheck the uploaded files and try again.');}
+  finally{hideOv();}
 });
 
 /* ---------- templates ---------- */
@@ -1056,7 +1115,7 @@ var TITLES={upload:"Upload Data",alert:"Alerts",dash:"Dashboard",plan:"Rotation 
 /* ---------- render ---------- */
 function renderAll(){
   var kpi=RESULT.kpi,meta=RESULT.meta;
-  $('dash-sub').textContent='Data through '+dstr(meta.end)+' · '+fmt(meta.salesItems)+' selling item-branch pairs analysed';
+  $('dash-sub').textContent='Data through '+dstr(meta.end)+' · '+fmt(meta.salesItems)+' selling item-branch pairs analysed · '+(meta.oosOn?('stockout-adjusted ADS: '+fmt(meta.oosPairs)+' pairs, '+fmt(meta.oosDays)+' est. OOS days left out'):'stockout adjustment OFF');
   var cards=[['v',kpi.lines,'Transfer suggestions'],['v',kpi.units,'Units to move'],['v',kpi.items,'Items rotated'],['alt',kpi.high,'High priority (OOS)'],['alt',kpi.dead,'From dead stock'],['alt',kpi.over,'From overstock'],['alt',kpi.unres,'Unresolved lines'],['alt',kpi.short,'Units still short']];
   $('kpis').innerHTML=cards.map(function(a){return '<div class="kpi '+(a[0]==='alt'?'alt':'')+'"><div class="v">'+fmt(a[1])+'</div><div class="l">'+a[2]+'</div></div>';}).join('');
   $('ct-plan').textContent=fmt(kpi.lines);$('ct-unres').textContent=fmt(kpi.unres);
@@ -1073,22 +1132,25 @@ function renderAll(){
   renderPlan();renderUnres();
   initManual();
 }
+function oosCell(n){return n?'<span class="oosd" title="'+n+' est. stock-out days left out of ADS">'+n+'d</span>':'<span style="color:var(--muted)">\u2014</span>';}
 function fillSel(sel,allLabel,arr){sel.innerHTML='<option value="">'+allLabel+'</option>'+arr.map(function(a){return '<option>'+esc(a)+'</option>';}).join('');}
 function uniqSorted(arr){return Array.from(new Set(arr)).filter(function(x){return x&&x!=='—';}).sort();}
 
 /* ---------- Top 100 ---------- */
-function renderTop(){
+function filteredTop(){
   var q=($('top-search').value||'').toLowerCase();
-  var rows=RESULT.topItems.filter(function(t){
+  return RESULT.topItems.filter(function(t){
     if(!inSet('tdiv',t.div))return false;if(!inSet('tdep',t.dep))return false;if(!inSet('tcat',t.cat))return false;
-    if(q&&!(String(t.item).toLowerCase().indexOf(q)>=0||String(t.name).toLowerCase().indexOf(q)>=0))return false;return true;});
+    if(q&&!(String(t.item).toLowerCase().indexOf(q)>=0||String(t.name).toLowerCase().indexOf(q)>=0))return false;return true;});}
+function renderTop(){
+  var rows=filteredTop();
   $('top-body').innerHTML='<table><thead><tr>'+selHead()+'<th>#</th><th>Item</th><th>Name</th><th>Division</th><th>Category</th><th>Move qty</th><th>Routes</th><th>OOS fixes</th><th>Score</th></tr></thead><tbody>'+
-    (rows.map(function(t){return '<tr class="click" data-item="'+t.item+'">'+selCell('top',keyTop(t))+'<td>'+t.rank+'</td><td>'+t.item+'</td><td>'+esc(t.name)+'</td><td>'+esc(t.div)+'</td><td>'+esc(t.cat)+'</td><td><b>'+t.qty+'</b></td><td>'+t.lines+'</td><td>'+t.high+'</td><td>'+t.score+'</td></tr>';}).join('')||'<tr><td colspan="10" class="empty">No items match.</td></tr>')+'</tbody>';
+    (rows.map(function(t){return '<tr class="click" data-item="'+esc(t.item)+'">'+selCell('top',keyTop(t))+'<td>'+t.rank+'</td><td>'+t.item+'</td><td>'+esc(t.name)+'</td><td>'+esc(t.div)+'</td><td>'+esc(t.cat)+'</td><td><b>'+t.qty+'</b></td><td>'+t.lines+'</td><td>'+t.high+'</td><td>'+t.score+'</td></tr>';}).join('')||'<tr><td colspan="10" class="empty">No items match.</td></tr>')+'</tbody>';
   [].forEach.call($('top-body').querySelectorAll('tr.click'),function(tr){tr.addEventListener('click',function(){openItem(tr.dataset.item);});});
   wireSel('top',$('top-body'),rows,keyTop,renderTop);
 }
 $('top-search').addEventListener('input',renderTop);
-function topData(){return {fname:'Top100_Priority',sheet:'Top100',title:'Top 100 \u2014 Priority Items',data:selKeep('top',RESULT.topItems,keyTop).map(function(t){return {Rank:t.rank,Item:t.item,Name:t.name,Division:t.div,Department:t.dep,Category:t.cat,Move_Qty:t.qty,Routes:t.lines,OOS_Fixes:t.high,Score:t.score};})};}
+function topData(){return {fname:'Top100_Priority',sheet:'Top100',title:'Top 100 \u2014 Priority Items',data:selKeep('top',filteredTop(),keyTop).map(function(t){return {Rank:t.rank,Item:t.item,Name:t.name,Division:t.div,Department:t.dep,Category:t.cat,Move_Qty:t.qty,Routes:t.lines,OOS_Fixes:t.high,Score:t.score};})};}
 
 /* ---------- item drill-down modal ---------- */
 function openItem(item){
@@ -1101,8 +1163,8 @@ function openItem(item){
   $('mod-meta').textContent=first.div+' · '+first.dep+' · '+first.cat+' · '+first.sub;
   $('mod-sum').innerHTML=[['Total to move',totQty],['Routes',rows.length],['Donor branches',froms.size],['Receiver branches',tos.size]].map(function(a){return '<div class="b"><div class="v">'+fmt(a[1])+'</div><div class="l">'+a[0]+'</div></div>';}).join('');
   rows.sort(function(a,b){return (a.priority==='High'?0:1)-(b.priority==='High'?0:1)||b.qty-a.qty;});
-  $('mod-table').innerHTML='<thead><tr><th>Priority</th><th>From branch</th><th>To branch</th><th>Move qty</th><th>Donor</th><th>Donor stock</th><th>Donor ADS</th><th>Recv stock</th><th>Recv ADS</th><th>Recv cover</th></tr></thead><tbody>'+
-    rows.map(function(r){return '<tr><td><span class="pill '+(r.priority==='High'?'high':'med')+'">'+r.priority+'</span></td><td>'+esc(r.from)+'</td><td>'+esc(r.to)+'</td><td><b>'+r.qty+'</b></td><td><span class="pill '+(r.donor==='Dead'?'dead':'over')+'">'+r.donor+'</span></td><td>'+r.dsoh+'</td><td>'+r.dads+'</td><td>'+r.rsoh+'</td><td>'+r.rads+'</td><td>'+r.rcover+'</td></tr>';}).join('')+'</tbody>';
+  $('mod-table').innerHTML='<thead><tr><th>Priority</th><th>From branch</th><th>To branch</th><th>Move qty</th><th>Donor</th><th>Donor stock</th><th>Donor ADS</th><th>Recv stock</th><th>Recv ADS</th><th title="Estimated stock-out days removed from this branch ADS">Recv OOS days</th><th>Recv cover</th></tr></thead><tbody>'+
+    rows.map(function(r){return '<tr><td><span class="pill '+(r.priority==='High'?'high':'med')+'">'+r.priority+'</span></td><td>'+esc(r.from)+'</td><td>'+esc(r.to)+'</td><td><b>'+r.qty+'</b></td><td><span class="pill '+(r.donor==='Dead'?'dead':'over')+'">'+r.donor+'</span></td><td>'+r.dsoh+'</td><td>'+r.dads+'</td><td>'+r.rsoh+'</td><td>'+r.rads+'</td><td>'+oosCell(r.roos)+'</td><td>'+r.rcover+'</td></tr>';}).join('')+'</tbody>';
   $('modal').classList.remove('hide');
 }
 $('mod-close').addEventListener('click',function(){$('modal').classList.add('hide');});
@@ -1139,12 +1201,12 @@ function renderPlan(){var rows=filteredPlan();var units=rows.reduce(function(s,r
   var note=fmt(rows.length)+' transfers · '+fmt(units)+' units'+(rows.length?' · sorted by From branch':'');
   var view=rows.slice(0,2000);if(rows.length>2000)note+=' · showing first 2,000 (export for all)';
   $('plan-count').textContent=note;
-  $('plan-table').innerHTML='<thead><tr>'+selHead()+'<th>Priority</th><th>From branch</th><th>To branch</th><th>Item</th><th>Name</th><th>Move</th><th>Donor</th><th>Donor SOH</th><th>Donor ADS</th><th>Recv SOH</th><th>Recv ADS</th><th>Recv cover</th><th>Division</th><th>Category</th></tr></thead><tbody>'+
-    (view.map(function(r){return '<tr class="click" data-item="'+r.item+'">'+selCell('plan',keyPlan(r))+'<td><span class="pill '+(r.priority==='High'?'high':'med')+'">'+r.priority+'</span></td><td>'+esc(r.from)+'</td><td>'+esc(r.to)+'</td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td><b>'+r.qty+'</b></td><td><span class="pill '+(r.donor==='Dead'?'dead':'over')+'">'+r.donor+'</span></td><td>'+r.dsoh+'</td><td>'+r.dads+'</td><td>'+r.rsoh+'</td><td>'+r.rads+'</td><td>'+r.rcover+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('')||'<tr><td colspan="15" class="empty">No transfers match these filters.</td></tr>')+'</tbody>';
+  $('plan-table').innerHTML='<thead><tr>'+selHead()+'<th>Priority</th><th>From branch</th><th>To branch</th><th>Item</th><th>Name</th><th>Move</th><th>Donor</th><th>Donor SOH</th><th>Donor ADS</th><th>Recv SOH</th><th>Recv ADS</th><th title="Estimated stock-out days removed from this branch ADS">Recv OOS days</th><th>Recv cover</th><th>Division</th><th>Category</th></tr></thead><tbody>'+
+    (view.map(function(r){return '<tr class="click" data-item="'+esc(r.item)+'">'+selCell('plan',keyPlan(r))+'<td><span class="pill '+(r.priority==='High'?'high':'med')+'">'+r.priority+'</span></td><td>'+esc(r.from)+'</td><td>'+esc(r.to)+'</td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td><b>'+r.qty+'</b></td><td><span class="pill '+(r.donor==='Dead'?'dead':'over')+'">'+r.donor+'</span></td><td>'+r.dsoh+'</td><td>'+r.dads+'</td><td>'+r.rsoh+'</td><td>'+r.rads+'</td><td>'+oosCell(r.roos)+'</td><td>'+r.rcover+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('')||'<tr><td colspan="16" class="empty">No transfers match these filters.</td></tr>')+'</tbody>';
   [].forEach.call($('plan-table').querySelectorAll('tr.click'),function(tr){tr.addEventListener('click',function(){openItem(tr.dataset.item);});});
   wireSel('plan',$('plan-table'),rows,keyPlan,renderPlan);
 }
-function planData(){var rows=filteredPlan().sort(function(a,b){return a.from.localeCompare(b.from)||a.item.localeCompare(b.item);});rows=selKeep('plan',rows,keyPlan);return {fname:'Rotation_Plan',sheet:'Plan',title:'Rotation Plan',data:rows.map(function(r){return {Priority:r.priority,From_Branch:r.from,To_Branch:r.to,Item:r.item,Name:r.name,Move_Qty:r.qty,Donor_Type:r.donor,Donor_SOH:r.dsoh,Donor_ADS:r.dads,Receiver_SOH:r.rsoh,Receiver_ADS:r.rads,Receiver_Cover_Days:r.rcover,Receiver_Need:r.need,WH_SOH:r.whsoh,Division:r.div,Department:r.dep,Category:r.cat,Sub_Category:r.sub};})};}
+function planData(){var rows=filteredPlan().sort(function(a,b){return a.from.localeCompare(b.from)||a.item.localeCompare(b.item);});rows=selKeep('plan',rows,keyPlan);return {fname:'Rotation_Plan',sheet:'Plan',title:'Rotation Plan',data:rows.map(function(r){return {Priority:r.priority,From_Branch:r.from,To_Branch:r.to,Item:r.item,Name:r.name,Move_Qty:r.qty,Donor_Type:r.donor,Donor_SOH:r.dsoh,Donor_ADS:r.dads,Receiver_SOH:r.rsoh,Receiver_ADS:r.rads,Receiver_OOS_Days_Excluded:r.roos||0,Receiver_Cover_Days:r.rcover,Receiver_Need:r.need,WH_SOH:r.whsoh,Division:r.div,Department:r.dep,Category:r.cat,Sub_Category:r.sub};})};}
 
 /* ---------- unresolved ---------- */
 $('ul-reset').addEventListener('click',function(){['udiv','ucat'].forEach(function(k){if(MSEL[k])MSEL[k].clear();});buildMS('udiv','ms-udiv',RESULT.unres,'div',renderUnres);buildMS('ucat','ms-ucat',RESULT.unres,'cat',renderUnres);$('ul-search').value='';renderUnres();});
@@ -1153,11 +1215,11 @@ $('ul-search').addEventListener('input',renderUnres);
 function renderUnres(){var rows=filteredUnres().sort(function(a,b){return b.short-a.short;});
   $('unres-count').textContent=fmt(rows.length)+' lines · '+fmt(rows.reduce(function(s,r){return s+r.short;},0))+' units short';
   var view=rows.slice(0,2000);
-  $('unres-table').innerHTML='<thead><tr>'+selHead()+'<th>Item</th><th>Name</th><th>Branch</th><th>SOH</th><th>ADS</th><th>Still short</th><th>Reason</th><th>Division</th><th>Category</th></tr></thead><tbody>'+
-    (view.map(function(r){return '<tr>'+selCell('unres',keyUnres(r))+'<td>'+r.item+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.branch)+'</td><td>'+r.soh+'</td><td>'+r.ads+'</td><td><b>'+r.short+'</b></td><td>'+esc(r.reason)+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('')||'<tr><td colspan="10" class="empty">Nothing unresolved here.</td></tr>')+'</tbody>';
+  $('unres-table').innerHTML='<thead><tr>'+selHead()+'<th>Item</th><th>Name</th><th>Branch</th><th>SOH</th><th>ADS</th><th title="Estimated stock-out days removed from ADS">OOS days</th><th>Still short</th><th>Reason</th><th>Division</th><th>Category</th></tr></thead><tbody>'+
+    (view.map(function(r){return '<tr>'+selCell('unres',keyUnres(r))+'<td>'+r.item+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.branch)+'</td><td>'+r.soh+'</td><td>'+r.ads+'</td><td>'+oosCell(r.oos)+'</td><td><b>'+r.short+'</b></td><td>'+esc(r.reason)+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('')||'<tr><td colspan="11" class="empty">Nothing unresolved here.</td></tr>')+'</tbody>';
   wireSel('unres',$('unres-table'),rows,keyUnres,renderUnres);
 }
-function unresData(){return {fname:'Unresolved_Needs',sheet:'Unresolved',title:'Unresolved Needs',data:selKeep('unres',filteredUnres().sort(function(a,b){return b.short-a.short;}),keyUnres).map(function(r){return {Item:r.item,Name:r.name,Branch:r.branch,SOH:r.soh,ADS:r.ads,Still_Short:r.short,Reason:r.reason,Division:r.div,Department:r.dep,Category:r.cat};})};}
+function unresData(){return {fname:'Unresolved_Needs',sheet:'Unresolved',title:'Unresolved Needs',data:selKeep('unres',filteredUnres().sort(function(a,b){return b.short-a.short;}),keyUnres).map(function(r){return {Item:r.item,Name:r.name,Branch:r.branch,SOH:r.soh,ADS:r.ads,OOS_Days_Excluded:r.oos||0,Still_Short:r.short,Reason:r.reason,Division:r.div,Department:r.dep,Category:r.cat};})};}
 
 function exportCsv(data,fname){var csv=Papa.unparse(data);dl('\ufeff'+csv,fname+'_'+new Date().toISOString().slice(0,10)+'.csv','text/csv');}
 
@@ -1202,7 +1264,7 @@ function renderAlerts(){
   $('alert-count').textContent=fmt(rows.length)+' alert'+(rows.length===1?'':'s')+' for '+(RESULT.alertDate||'latest day');
   var body=rows.map(function(r){var dev=r.type==='Spike'?(r.dev+'\u00d7'+(r.record?' \u2605':'')):('\u2212'+r.dev+'%');
     return '<tr>'+selCell('alert',keyAlert(r))+'<td><span class="pill '+(r.type==='Spike'?'spike':'drop')+'">'+r.type+'</span></td><td>'+(RESULT.alertDate||'')+'</td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.branch)+'</td><td>'+r.normal+'/day</td><td><b>'+r.latest+'</b></td><td>'+dev+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';}).join('');
-  $('alert-table').innerHTML='<thead><tr>'+selHead()+'<th>Type</th><th>Date</th><th>Item</th><th>Name</th><th>Branch</th><th>Normal</th><th>Latest sold</th><th>Deviation</th><th>Division</th><th>Category</th></tr></thead><tbody>'+(body||'<tr><td colspan="11" class="empty">No unusual activity \U0001f389</td></tr>')+'</tbody>';
+  $('alert-table').innerHTML='<thead><tr>'+selHead()+'<th>Type</th><th>Date</th><th>Item</th><th>Name</th><th>Branch</th><th>Normal</th><th>Latest sold</th><th>Deviation</th><th>Division</th><th>Category</th></tr></thead><tbody>'+(body||'<tr><td colspan="11" class="empty">No unusual activity \uD83C\uDF89</td></tr>')+'</tbody>';
   wireSel('alert',$('alert-table'),rows,keyAlert,renderAlerts);
 }
 function renderAlertsBranch(){
@@ -1214,7 +1276,7 @@ function renderAlertsBranch(){
     var u=aUnits(r);var ucell=r.type==='Spike'?('<span class="uup">+'+u+'</span>'):('<span class="udn">\u2212'+u+'</span>');
     body+='<tr>'+selCell('alert',keyAlert(r))+'<td><span class="pill '+(r.type==='Spike'?'spike':'drop')+'">'+r.type+'</span></td><td>'+r.item+'</td><td>'+esc(r.name)+'</td><td>'+r.normal+'/day</td><td><b>'+r.latest+'</b></td><td>'+ucell+'</td><td>'+esc(r.div)+'</td><td>'+esc(r.cat)+'</td></tr>';
   });
-  $('alert-table').innerHTML='<thead><tr>'+selHead()+'<th>Type</th><th>Item</th><th>Name</th><th>Normal</th><th>Latest</th><th>Units \u00b1</th><th>Division</th><th>Category</th></tr></thead><tbody>'+(body||'<tr><td colspan="9" class="empty">No unusual activity \U0001f389</td></tr>')+'</tbody>';
+  $('alert-table').innerHTML='<thead><tr>'+selHead()+'<th>Type</th><th>Item</th><th>Name</th><th>Normal</th><th>Latest</th><th>Units \u00b1</th><th>Division</th><th>Category</th></tr></thead><tbody>'+(body||'<tr><td colspan="9" class="empty">No unusual activity \uD83C\uDF89</td></tr>')+'</tbody>';
   wireSel('alert',$('alert-table'),rows,keyAlert,renderAlerts);
 }
 $('al-type').addEventListener('input',renderAlerts);$('al-search').addEventListener('input',renderAlerts);
@@ -1255,7 +1317,7 @@ function exportPdf(data,fname,title){
   doc.save(fname+'_'+date+'.pdf');
 }
 var PENDING_EXPORT=null;
-function expEsc(v){return String(v==null?'':v).replace(/[&<>]/g,function(x){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[x];});}
+function expEsc(v){return esc(v);}
 function doExport(fmt,getData){
   var d=getData();
   if(!d.data||!d.data.length){alert('Nothing to export with current filters.');return;}
